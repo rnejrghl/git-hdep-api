@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.rest.api.service.mm.CmnSendHistMapper">
+
+    <select id="sendHists" parameterType="com.rest.api.model.mm.SendHistVO" resultType="com.rest.api.model.mm.SendHistVO">
+        SELECT
+        CSH.SEND_NO 			AS	sendNo 			/* 발송번호 (일련번호 1 ~ 9999999999까지 1씩 증가하는 일련번호) */
+        ,DATE_FORMAT(CSH.SEND_DT, '%Y-%m-%d %H:%i')			AS	sendDt			/* 발송일시 */
+        ,CSH.SEND_GUBN 		    AS	sendGubn		/* 발송구분 (SMS/MAIL) */
+        ,CSH.ALRM_NAME 		    AS	alrmName		/* 알람명 */
+        ,CSH.RECV_SEQ 			AS	recvSeq			/* 수신자번호 */
+        ,CU.USER_NAME			AS userName			/* 사용자명 */
+        ,CSH.SEND_GUBN_CNTN 	AS	sendGubnCntn	/* 발송구분내용 (발송구분에 따른 전화번호 또는 메일주소) */
+        ,CSH.SEND_RSLT_CD 	    AS	sendRsltCd		/* 발송결과코드 (S(Success)/F(Fail)) */
+        ,CSH.SEND_CNTN 		    AS	sendCntn		/* 발송내역 */
+        ,CSH.MSG_ID 			AS	msgId			/* 발송메시지ID */
+        ,CU.SMS_ALRM_YN 			AS	smsAlrmYn          /* SMS 알람여부 */
+        ,CU.EMAIL_ALRM_YN 			AS	emailAlrmYn         /* EMAIL 알람여부 */
+        FROM CMN_SEND_HIST CSH
+        JOIN CMN_USER CU
+        ON (CSH.RECV_SEQ = CU.USER_SEQ
+    <if test="userName != null and  userName != ''">
+        AND CU.USER_NAME LIKE CONCAT('%',#{userName},'%')
+    </if>
+        )
+        WHERE 1=1
+        <if test="sendDt != null and  sendDt != ''">
+        AND DATE_FORMAT(CSH.SEND_DT,'%Y%m%d' ) = #{sendDt}
+        </if>
+        <if test="sendGubn != null and  sendGubn != ''">
+        AND CSH.SEND_GUBN = #{sendGubn}
+        </if>
+        <if test="alrmName != null and  alrmName != ''">
+        AND CSH.ALRM_NAME LIKE CONCAT('%',#{alrmName},'%')
+        </if>
+        <if test="sendRsltCd != null and  sendRsltCd != ''">
+        AND CSH.SEND_RSLT_CD = #{sendRsltCd}
+        </if>
+        <if test="recvSeq != null and  recvSeq != ''">
+            AND CSH.RECV_SEQ = #{recvSeq}
+        </if>
+        ORDER BY CSH.SEND_DT DESC
+        LIMIT #{pageStart}, #{pagePer};
+
+     </select>
+
+    <select id="sendHistsCnt" parameterType="com.rest.api.model.mm.SendHistVO" resultType="com.rest.api.model.mm.SendHistCntVO">
+        SELECT COUNT(1) AS totalCnt
+        FROM (SELECT
+        CSH.SEND_NO 			AS	sendNo 			/* 발송번호 (일련번호 1 ~ 9999999999까지 1씩 증가하는 일련번호) */
+        ,DATE_FORMAT(CSH.SEND_DT, '%Y-%m-%d %H:%i')			AS	sendDt			/* 발송일시 */
+        ,CSH.SEND_GUBN 		    AS	sendGubn		/* 발송구분 (SMS/MAIL) */
+        ,CSH.ALRM_NAME 		    AS	alrmName		/* 알람명 */
+        ,CSH.RECV_SEQ 			AS	recvSeq			/* 수신자번호 */
+        ,CU.USER_NAME			AS userName			/* 사용자명 */
+        ,CSH.SEND_GUBN_CNTN 	AS	sendGubnCntn	/* 발송구분내용 (발송구분에 따른 전화번호 또는 메일주소) */
+        ,CSH.SEND_RSLT_CD 	    AS	sendRsltCd		/* 발송결과코드 (S(Success)/F(Fail)) */
+        ,CSH.SEND_CNTN 		    AS	sendCntn		/* 발송내역 */
+        ,CSH.MSG_ID 			AS	msgId			/* 발송메시지ID */
+        ,CU.SMS_ALRM_YN 			AS	smsAlrmYn          /* SMS 알람여부 */
+        ,CU.EMAIL_ALRM_YN 			AS	emailAlrmYn         /* EMAIL 알람여부 */
+        FROM CMN_SEND_HIST CSH
+        JOIN CMN_USER CU
+        ON (CSH.RECV_SEQ = CU.USER_SEQ
+    <if test="userName != null and  userName != ''">
+        AND CU.USER_NAME LIKE CONCAT('%',#{userName},'%')
+    </if>
+        )
+        WHERE 1=1
+        <if test="sendDt != null and  sendDt != ''">
+        AND DATE_FORMAT(CSH.SEND_DT,'%Y%m%d' ) = #{sendDt}
+        </if>
+        <if test="sendGubn != null and  sendGubn != ''">
+        AND CSH.SEND_GUBN = #{sendGubn}
+        </if>
+        <if test="alrmName != null and  alrmName != ''">
+        AND CSH.ALRM_NAME LIKE CONCAT('%',#{alrmName},'%')
+        </if>
+        <if test="sendRsltCd != null and  sendRsltCd != ''">
+        AND CSH.SEND_RSLT_CD = #{sendRsltCd}
+        </if>
+        <if test="recvSeq != null and  recvSeq != ''">
+            AND CSH.RECV_SEQ = #{recvSeq}
+        </if>
+        ORDER BY CSH.SEND_DT DESC) as A
+
+     </select>
+
+    <insert id="notiInsert" parameterType="com.rest.api.model.mm.CmnNotiUpdate" >
+        INSERT INTO
+        CMN_NOTI (
+            NOTI_ID
+            ,LAST_CHNG_USEQ
+            ,NOTI_NAME
+            ,SMS_YN
+            ,SMS_CNTN
+            ,MAIL_YN
+            ,MAIL_TITL
+            ,MAIL_HEAD
+            ,MAIL_CNTN
+            ,MAIL_FTER
+            ,USER_LVL_CD
+        )
+        VALUES
+        (
+            #{notiId}
+            , #{lastChngUseq}
+            , #{notiName}
+            , 'Y'
+            , #{smsCntn}
+            , 'Y'
+            , #{mailTitl}
+            , #{mailHead}
+            , #{mailCntn}
+            , #{mailFter}
+            , '0'
+        )
+    </insert>
+
+    <delete id="notiDelete" parameterType="com.rest.api.model.mm.CmnNotiDelete">
+        DELETE FROM CMN_NOTI 
+        WHERE 1=1
+        <if test="notiId != null">
+        AND NOTI_ID = #{notiId}
+        </if>
+    </delete>
+
+    <update id="notiUpdate" parameterType="com.rest.api.model.mm.CmnNotiUpdate">
+        UPDATE CMN_NOTI
+            SET
+            NOTI_NAME = #{notiName}
+            ,SMS_CNTN = #{smsCntn}
+            ,MAIL_TITL = #{mailTitl}
+            ,MAIL_HEAD = #{mailHead}
+            ,MAIL_CNTN = #{mailCntn}
+            ,MAIL_FTER = #{mailFter}
+            ,LAST_CHNG_USEQ = #{lastChngUseq}
+        WHERE 1=1
+        <if test="notiId != null and  notiId != ''">
+            AND NOTI_ID=#{notiId}
+        </if>
+    </update>
+
+</mapper>

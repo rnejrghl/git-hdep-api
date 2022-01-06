@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.rest.api.service.mm.CmnSiteGtwyMapper">
+
+
+    <select id="siteGtwyList" resultType="com.rest.api.model.mm.CmnSiteGtwyVO">
+        SELECT
+                SITE_ID		AS siteId	/* 사이트ID */
+        FROM PRJ_SITE_CNRT PSC
+        WHERE 1=1
+        AND DEL_YN = 'N'
+    </select>
+
+    <select id="siteInfo" parameterType="com.rest.api.model.mm.CmnSiteGtwyVO" resultType="com.rest.api.model.mm.CmnSiteGtwyVO">
+        SELECT
+            PSC.SITE_ID			    AS siteId			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            , PSC.RESC_GUBN		    AS rescGubn			/* 자원구분 (코드ID : CDK-00011( A:PV/B:PV+ESS )) */
+            , PSC.PV_INST_CAPA	    AS pvInstCapa		/* PV설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            , PSC.ESS_INST_CAPA	    AS essInstCapa		/* ESS설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            , PSU.USER_SEQ			AS userSeq			/* 사용자번호 */
+            , PSCU.USER_ID			AS userId			/* 사용자ID */
+          	, PSCU.USER_NAME		AS userName			/* 사용자명 */
+          	, CSG.RSC_GRP_ID		AS rscGrpId			/* 자원그룹ID */
+          	, CSG.GTWY_ID			AS gtwyId			/* 게이트웨이ID */
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSU.SITE_ID     = PSC.SITE_ID
+        AND PSU.SITE_ULVL_CD ='ACN003')
+        JOIN CMN_USER PSCU
+        ON (PSU.USER_SEQ = PSCU.USER_SEQ)
+        LEFT JOIN CMN_SITE_GTWY CSG
+        ON(PSC.SITE_ID = CSG.SITE_ID)
+        WHERE 1=1
+        AND PSC.SITE_ID =         #{siteId}
+
+    </select>
+
+    <select id="siteGtwyDvceList" parameterType="com.rest.api.model.mm.CmnGtwyDvceVO" resultType="com.rest.api.model.mm.CmnGtwyDvceVO">
+        SELECT
+        CSG.SITE_ID             as siteId       /* 사이트ID */
+        ,CGD.GTWY_ID 			AS gtwyId 		/* 게이트웨이ID */
+        ,CGD.DVCE_ID 			AS dvceId 		/* 디바이스ID */
+
+        , CD.EQMT_GUBN_CD 	    AS eqmtGubnCd	/* 설비구분코드 (인버터/PCS/배터리) */
+        , CD.PNT_ADDR 			AS pntAddr		/* 포인트주소 */
+        , CD.PNT_ADDR_NAME 	    AS pntAddrName	/* 포인트주소명 */
+        , CD.PNT_ADDR_DESC 	    AS pntAddrDesc /* 포인트주소설명 */
+        , CD.DATA_TYP 			AS dataTyp		/* 데이터형식 */
+        , CD.ITEM_GUBN 		    AS itemGubn		/* 아이템구분 */
+        , CD.SCLE_FCTR 		    AS scleFctr		/* 스케일팩터 (NUMBER만 넣나?) */
+        , CD.UNIT_CD 			AS unitCd		/* 단위코드 (GRP_CD : CDK-00018) */
+        , CD.SYS_TAG 			AS sysTag		/* 시스템태그 */
+
+        , (SELECT COUNT(CDC.DVCE_ID) CNT FROM CMN_DVCE_CALC CDC WHERE 1=1 AND CDC.DVCE_ID = CD.DVCE_ID ) CNT	/* 계산식 갯수 */
+
+        , CGD.DATA_RCRD_YN 	    AS dataRcrdYn 	/* 데이터기록여부 */
+        , CGD.ADDR_1 			AS addr1 		/* 주소1 */
+        , CGD.ADDR_2 			AS addr2 		/* 주소2 */
+        , CGD.RECV_VAL			AS recvVal 		/* 수신값*/
+        , CGD.RECV_DTTI  		AS recvDtti		/* 수신시각 */
+        FROM CMN_SITE_GTWY CSG
+        JOIN CMN_GTWY_DVCE CGD
+        ON(CSG.GTWY_ID = CGD.GTWY_ID)
+        JOIN CMN_DVCE CD
+        ON(CGD.DVCE_ID = CD.DVCE_ID
+        <if test="pntAddr != null and  pntAddr != ''">
+            AND CD.PNT_ADDR 		= #{pntAddr}			/* 포인트주소 */
+        </if>
+        <if test="pntAddrName != null and  pntAddrName != ''">
+            AND CD.PNT_ADDR_NAME    = #{pntAddrName}		/* 포인트주소명 */
+        </if>
+        <if test="sysTag != null and  sysTag != ''">
+            AND CD.SYS_TAG 		    = #{sysTag}				/* 시스템태그 */
+        </if>
+        )
+        WHERE 1=1
+        AND CSG.SITE_ID = #{siteId}
+
+
+    </select>
+
+    <select id="rscGrpList"  resultType="com.rest.api.model.mm.RscGrpVO">
+        SELECT
+            RSC_GRP_ID      AS rscGrpId     /* 자원그룹ID */
+            , RSC_GRP_NAME  AS rscGrpName   /* 자원그룹명 */
+        FROM RSC_GRP
+        WHERE 1=1
+        AND DEL_YN = 'N'
+    </select>
+
+    <select id="cmnGtwyList"  resultType="com.rest.api.model.mm.CmnGtwyVO">
+        SELECT
+            GTWY_ID		AS gtwyId		/* 게이트웨이ID */
+            , GTWY_NAME	AS gtwyName		/* 게이트웨이명 */
+        FROM CMN_GTWY
+    </select>
+
+    <select id="siteGtwyInfo" parameterType="com.rest.api.model.mm.CmnSiteGtwyInfoVO" resultType="com.rest.api.model.mm.CmnSiteGtwyInfoVO">
+        SELECT
+            RSC_GRP_ID	    AS rscGrpId 	/* 자원그룹ID */
+            ,GTWY_ID		AS gtwyId		/* 게이트웨이ID */
+            ,SITE_ID		AS siteId		/* 사이트ID */
+        FROM CMN_SITE_GTWY
+        WHERE 1=1
+        AND SITE_ID = #{siteId}
+
+    </select>
+
+    <insert id="siteGtwyInsert" parameterType="com.rest.api.model.mm.CmnSiteGtwyInsert" >
+        INSERT INTO CMN_SITE_GTWY
+        (
+            SITE_ID 			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            ,LAST_CHNG_USEQ 	/* 최종작업자번호 */
+            <if test="rscGrpId != null and  rscGrpId != ''">
+                ,RSC_GRP_ID 		/* 자원그룹ID */
+            </if>
+            <if test="gtwyId != null and  gtwyId != ''">
+                ,GTWY_ID 			/* 게이트웨이ID */
+            </if>
+
+        )
+        VALUES
+        (
+            #{siteId} 			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            ,#{userSeq} 		/* 최종작업자번호 */
+            <if test="rscGrpId != null and  rscGrpId != ''">
+                ,#{rscGrpId} 		/* 자원그룹ID */
+            </if>
+            <if test="gtwyId != null and  gtwyId != ''">
+                ,#{gtwyId} 			/* 게이트웨이ID */
+            </if>
+
+        )
+    </insert>
+
+    <insert id="siteGtwyUpdate" parameterType="com.rest.api.model.mm.CmnSiteGtwyUpdate">
+     INSERT INTO
+          CMN_SITE_GTWY (
+             SITE_ID
+             ,GTWY_ID
+             ,RSC_GRP_ID
+             ,LAST_CHNG_USEQ
+          )
+       VALUES (
+          #{siteId}
+          ,#{gtwyId}
+          ,#{rscGrpId}
+          ,#{userSeq}
+       )
+       ON
+          DUPLICATE KEY
+       UPDATE
+        LAST_CHNG_USEQ 	= #{userSeq} 	/* 최종작업자번호 */
+
+        <if test="rscGrpId != null and  rscGrpId != ''">
+            , RSC_GRP_ID 		= #{rscGrpId} 		/* 자원그룹ID */
+        </if>
+        <if test="gtwyId != null and  gtwyId != ''">
+            , GTWY_ID 			= #{gtwyId} 		/* 게이트웨이ID */
+        </if>
+
+    </insert>
+
+</mapper>

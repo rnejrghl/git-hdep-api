@@ -1,0 +1,772 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.rest.api.service.st.StatMapper">
+    <select  id="genStatList" resultType="com.rest.api.model.st.GenGraphsVO" parameterType="com.rest.api.model.st.GenListVO">
+    select 
+        CP.SITE_ID as siteId, 
+        CASE WHEN RESC_GUBN='A' THEN 'PV' ELSE 'ESS' END as rescGubn,
+        CU.USER_NAME as userName,
+        CU2.USER_NAME as installerName,
+        MODL_CAPA as instCapa,
+        ROUND(GOAL_GENR_CAPA,1) as goalGenrCapa,
+        <choose>
+            <when test="type == 'hour'">
+            CHS.TIME_STAMP as nowDate, 
+            ROUND(TOTAL_AMOUNT/1000,1) as nowTotPwAmt, 
+            </when>
+            <when test="type == 'day'">
+            DATE_FORMAT(CHS.TIME_STAMP,'%Y-%m-%d') as nowDate, 
+            ROUND(SUM(TOTAL_AMOUNT)/1000,1) as nowTotPwAmt, 
+            </when>
+            <otherwise>
+            DATE_FORMAT(CHS.TIME_STAMP,'%Y-%m') as nowDate, 
+            ROUND(SUM(TOTAL_AMOUNT)/1000,1) as nowTotPwAmt, 
+            </otherwise>
+        </choose>
+        EFF as ivtEfficiency, 
+        <choose>
+            <when test="type == 'hour'">
+            concat('-') as energyYield,
+            </when>
+            <when test="type == 'day'">
+            ROUND(SUM(TOTAL_AMOUNT)/1000/MODL_CAPA,1) as energyYield,
+            </when>
+            <otherwise>
+            round(SUM(TOTAL_AMOUNT)/1000/MODL_CAPA/day(LAST_DAY(DATE_FORMAT(CHS.TIME_STAMP,'%Y%m%d'))),1) as energyYield,
+            </otherwise>
+        </choose>
+        B.LAST_YEAR ,
+        B.LAST_PROD as lastTotPwAmt,
+        <choose>
+            <when test="type == 'hour'">
+            WEATHER_MAIN as weather,
+            ROUND(WEATHER_TEMP,1) as temperature
+            </when>
+            <otherwise>
+            concat('-') as weather,
+            concat('-') as temperature
+            </otherwise>
+        </choose>
+        FROM PRJ_SITE_CNRT PSC
+            JOIN PRJ_SITE_USER PSU
+            ON PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD = 'ACN005'
+            LEFT JOIN PRJ_SITE_USER PSU2
+            ON PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD = 'ACN004'
+            LEFT JOIN PRJ_SITE_PLAN PSP
+            ON PSC.SITE_ID = PSP.SITE_ID
+            JOIN CMN_USER CU2
+            ON (PSU2.USER_SEQ = CU2.USER_SEQ)
+            JOIN CMN_USER CU
+            ON (PSU.USER_SEQ = CU.USER_SEQ)
+            LEFT JOIN CMN_PLANT CP
+            ON PSC.SITE_ID = CP.SITE_ID
+            LEFT JOIN CMN_PLANT_FAC CPF
+            ON CP.PLANT_ID = CPF.PLANT_ID
+            LEFT JOIN CMN_HIS_SUM CHS
+            ON CHS.SITE_ID = PSP.SITE_ID
+        LEFT OUTER JOIN (
+        select CHS2.SITE_ID,    
+        <choose>
+            <when test="type == 'hour'">
+            DATE_FORMAT(TIME_STAMP,'%m%d%H%i')"LAST_YEAR", 
+            ROUND(TOTAL_AMOUNT/1000,1)"LAST_PROD" 
+            </when>
+            <otherwise>
+            DATE_FORMAT(TIME_STAMP,'%m%d')"LAST_YEAR",
+            ROUND(sum(TOTAL_AMOUNT)/1000,1)"LAST_PROD" 
+            </otherwise>
+        </choose>
+        from CMN_HIS_SUM CHS2
+        JOIN 
+        (SELECT PSC2.SITE_ID,
+        PSC2.RESC_GUBN
+        FROM PRJ_SITE_CNRT PSC2) TEMP
+        ON CHS2.SITE_ID=TEMP.SITE_ID
+        where 1=1
+        <if test="siteId != null and  siteId != ''">
+        and CHS2.SITE_ID=#{siteId}
+        </if>
+        and CASE WHEN TEMP.RESC_GUBN='A' THEN PNT_ADDR = '2' ELSE PNT_ADDR='13134' END
+        and SUM_TYPE ='A'
+        <if test="startDt != null and  startDt != '' and endDt != null and  endDt != ''">
+        and DATE_FORMAT(TIME_STAMP,'%Y%m%d') between DATE_FORMAT(DATE_ADD(#{startDt},INTERVAL -1 YEAR),'%Y%m%d') and  DATE_FORMAT(DATE_ADD(#{endDt},INTERVAL -1 YEAR),'%Y%m%d')
+        </if>
+        <choose>
+            <when test="type == 'hour'">
+            group by TIME_STAMP
+            </when>
+            <when test="type == 'day'">
+            group by DATE_FORMAT(TIME_STAMP,'%Y%m%d')
+            </when>
+            <otherwise>
+            group by DATE_FORMAT(TIME_STAMP,'%Y%m')
+            </otherwise>
+        </choose>
+        ) B
+        ON PSC.SITE_ID =B.SITE_ID 
+        <choose>
+            <when test="type == 'hour'">
+                AND DATE_FORMAT(TIME_STAMP,'%m%d%H%i') = B.LAST_YEAR 
+            </when>
+            <otherwise>
+                AND DATE_FORMAT(TIME_STAMP,'%m%d') = B.LAST_YEAR 
+            </otherwise>
+        </choose>
+    LEFT OUTER JOIN (
+    select SITE_ID, 
+        <choose>
+            <when test="type == 'hour'">
+                concat('-') "GOAL_GENR_CAPA",
+            </when>
+            <when test="type == 'day'">
+                round((GOAL_GENR_CAPA/day(LAST_DAY(DATE_FORMAT(concat(GOAL_DT,'01') ,'%Y%m%d')))),1) "GOAL_GENR_CAPA", 
+            </when>
+            <otherwise>
+                round(GOAL_GENR_CAPA,1) "GOAL_GENR_CAPA", 
+            </otherwise>
+        </choose>
+        GOAL_DT
+        from PRJ_SITE_GOAL 
+        where 1=1
+        <if test="siteId != null and  siteId != ''">
+        and SITE_ID=#{siteId}
+        </if>
+        <if test="startDt != null and  startDt != '' and endDt != null and  endDt != ''">
+        and GOAL_DT between DATE_FORMAT(#{startDt},'%Y%m') and  DATE_FORMAT(#{endDt},'%Y%m') 
+        </if>
+        ) C
+    ON PSC.SITE_ID =C.SITE_ID and DATE_FORMAT(TIME_STAMP,'%Y%m') = C.GOAL_DT 
+    LEFT OUTER JOIN (
+        <choose>
+            <when test="type == 'hour'">
+                select DATE_FORMAT(TIME_STAMP,'%Y%m%d%H%i') "TS",
+            </when>
+            <when test="type == 'day'">
+                select DATE_FORMAT(TIME_STAMP,'%Y%m%d') "TS",
+            </when>
+            <otherwise>
+                select DATE_FORMAT(TIME_STAMP,'%Y%m') "TS",
+            </otherwise>
+        </choose>
+        SITE_ID, 
+        <choose>
+            <when test="type == 'hour'">
+                round((TOTAL_IVT_AC/TOTAL_IVT_DC)*100,1) "EFF"
+            </when>
+            <otherwise>
+                round((sum(TOTAL_IVT_AC)/sum(TOTAL_IVT_DC))*100,1) "EFF"
+            </otherwise>
+        </choose> 
+        from CMN_PLANT_SUM
+        where 1=1
+        <if test="siteId != null and  siteId != ''">
+        and SITE_ID=#{siteId}
+        </if>
+        <if test="startDt != null and  startDt != '' and endDt != null and  endDt != ''">
+        and TIME_STAMP between DATE_FORMAT(#{startDt},'%Y%m%d') and  DATE_FORMAT(#{endDt},'%Y%m%d') +1
+        </if>
+        <choose>
+            <when test="type == 'hour'">
+                group by TIME_STAMP
+            </when>
+            <when test="type == 'day'">
+                group by DATE_FORMAT(TIME_STAMP,'%Y%m%d')
+            </when>
+            <otherwise>
+                group by DATE_FORMAT(TIME_STAMP,'%Y%m')
+            </otherwise>
+        </choose>        
+    ) D
+    <choose>
+        <when test="type == 'hour'">
+            ON PSC.SITE_ID =D.SITE_ID and DATE_FORMAT(TIME_STAMP,'%Y%m%d%H%i') = TS
+        </when>
+        <when test="type == 'day'">
+            ON PSC.SITE_ID =D.SITE_ID and DATE_FORMAT(TIME_STAMP,'%Y%m%d') = TS
+        </when>
+        <otherwise>
+            ON PSC.SITE_ID =D.SITE_ID and DATE_FORMAT(TIME_STAMP,'%Y%m') = TS
+        </otherwise>
+    </choose>
+    LEFT OUTER JOIN (
+        select 
+            DATE_FORMAT(TIME_STAMP,'%Y%m%d%H%i') "TS_WE", 
+            SITE_ID, 
+            <choose>
+                <when test="type == 'hour'">
+                    WEATHER_MAIN "WEATHER_MAIN",
+                </when>
+                <otherwise>
+                    concat('-') "WEATHER_MAIN",
+                </otherwise>
+            </choose>
+            <choose>
+                <when test="type == 'hour'">
+                    WEATHER_TEMP-273.15 "WEATHER_TEMP"
+                </when>
+                <otherwise>
+                    concat('-') "WEATHER_TEMP"
+                </otherwise>
+            </choose>
+            from CMN_PLANT_WEATHER
+            where 1=1
+            <if test="siteId != null and  siteId != ''">
+            and SITE_ID=#{siteId}
+            </if>
+            <if test="startDt != null and  startDt != '' and endDt != null and  endDt != ''">
+            and TIME_STAMP between DATE_FORMAT(#{startDt},'%Y%m%d') and  DATE_FORMAT(#{endDt},'%Y%m%d')+1
+            </if>
+            <choose>    
+                <when test="type == 'hour'">
+                    group by TIME_STAMP
+                </when>
+                <when test="type == 'day'">
+                    group by DATE_FORMAT(TIME_STAMP,'%Y%m%d')
+                </when>
+                <otherwise>
+                    group by DATE_FORMAT(TIME_STAMP,'%Y%m')
+                </otherwise>
+            </choose>   
+        ) E
+        <choose>
+            <when test="type == 'hour'">
+                ON PSC.SITE_ID =E.SITE_ID and DATE_FORMAT(TIME_STAMP,'%Y%m%d%H%i') = TS_WE
+            </when>
+            <when test="type == 'day'">
+                ON PSC.SITE_ID =E.SITE_ID and DATE_FORMAT(TIME_STAMP,'%Y%m%d') = TS_WE
+            </when>
+            <otherwise>
+                ON PSC.SITE_ID =E.SITE_ID and DATE_FORMAT(TIME_STAMP,'%Y%m') = TS_WE
+            </otherwise>
+        </choose>
+    WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        <if test="siteId != null and  siteId != ''">
+        and CP.SITE_ID=#{siteId}
+        </if>
+        <choose>
+            <when test="type == 'hour'">
+            and CHS.SUM_TYPE ='A'
+            </when>
+            <otherwise>
+            and CHS.SUM_TYPE ='B'
+            </otherwise>
+        </choose>
+        and CASE WHEN PSC.RESC_GUBN='A' THEN CHS.PNT_ADDR = '2' ELSE CHS.PNT_ADDR='13134' END
+        AND IFNULL(PSC.MNG_STRT_DT, '') != ''
+        <if test="startDt != null and  startDt != '' and endDt != null and  endDt != ''">
+        and DATE_FORMAT(TIME_STAMP,'%Y%m%d') between DATE_FORMAT(#{startDt},'%Y%m%d') and  DATE_FORMAT(#{endDt},'%Y%m%d')
+        </if>
+        group by  
+        CP.SITE_ID, 
+        RESC_GUBN, 
+        CU2.USER_NAME, 
+        MODL_CAPA, 
+    <choose>
+        <when test="type == 'hour'">
+        CHS.TIME_STAMP
+        </when>
+        <when test="type == 'day'">
+        DATE_FORMAT(CHS.TIME_STAMP,'%Y%m%d')
+        </when>
+        <otherwise>
+        DATE_FORMAT(CHS.TIME_STAMP,'%Y%m') 
+        </otherwise>
+    </choose>        
+    Order by TIME_STAMP asc
+    LIMIT #{pageStart}, #{pagePer};
+    </select>
+
+    <select  id="genStatCnt" resultType="com.rest.api.model.st.GenCntVO" parameterType="com.rest.api.model.st.GenListVO">
+SELECT COUNT(1) as totalCnt from (
+    select 
+    CP.SITE_ID as siteId,
+    CASE WHEN RESC_GUBN='A' THEN 'PV' ELSE 'ESS' END as rescGubn,
+    CU2.USER_NAME as userName,
+    CU2.USER_NAME as installerName,
+    MODL_CAPA as instCapa,
+    ROUND(GOAL_GENR_CAPA,1) as goalGenrCapa,
+    <choose>
+        <when test="type == 'hour'">
+        CHS.TIME_STAMP as nowDate, 
+        ROUND(TOTAL_AMOUNT/1000,1) as nowTotPwAmt, 
+        </when>
+        <when test="type == 'day'">
+        DATE_FORMAT(CHS.TIME_STAMP,'%Y-%m-%d') as nowDate, 
+        ROUND(SUM(TOTAL_AMOUNT)/1000,1) as nowTotPwAmt, 
+        </when>
+        <otherwise>
+        DATE_FORMAT(CHS.TIME_STAMP,'%Y-%m') as nowDate, 
+        ROUND(SUM(TOTAL_AMOUNT)/1000,1) as nowTotPwAmt, 
+        </otherwise>
+    </choose>
+    EFF as ivtEfficiency, 
+    <choose>
+        <when test="type == 'hour'">
+        concat('-') as energyYield,
+        </when>
+        <when test="type == 'day'">
+        ROUND(SUM(TOTAL_AMOUNT)/1000/MODL_CAPA,1) as energyYield,
+        </when>
+        <otherwise>
+        round(SUM(TOTAL_AMOUNT)/1000/MODL_CAPA/day(LAST_DAY(DATE_FORMAT(CHS.TIME_STAMP,'%Y%m%d'))),1) as energyYield,
+        </otherwise>
+    </choose>
+    B.LAST_YEAR ,
+    B.LAST_PROD as lastTotPwAmt
+    FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD = 'ACN005'
+        LEFT JOIN PRJ_SITE_USER PSU2
+        ON PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD = 'ACN004'
+        LEFT JOIN PRJ_SITE_PLAN PSP
+        ON PSC.SITE_ID = PSP.SITE_ID
+        JOIN CMN_USER CU2
+        ON (PSU2.USER_SEQ = CU2.USER_SEQ)
+        JOIN CMN_USER CU
+        ON (PSU.USER_SEQ = CU.USER_SEQ)
+        LEFT JOIN CMN_PLANT CP
+        ON PSC.SITE_ID = CP.SITE_ID
+        LEFT JOIN CMN_PLANT_FAC CPF
+        ON CP.PLANT_ID = CPF.PLANT_ID
+        LEFT JOIN CMN_HIS_SUM CHS
+        ON CHS.SITE_ID = PSP.SITE_ID
+    LEFT OUTER JOIN (
+        select CHS2.SITE_ID,
+        <choose>
+            <when test="type == 'hour'">
+            DATE_FORMAT(TIME_STAMP,'%m%d%H%i')"LAST_YEAR", 
+            ROUND(TOTAL_AMOUNT/1000,1)"LAST_PROD" 
+            </when>
+            <otherwise>
+            DATE_FORMAT(TIME_STAMP,'%m%d')"LAST_YEAR",
+            ROUND(sum(TOTAL_AMOUNT)/1000,1)"LAST_PROD" 
+            </otherwise>
+        </choose>
+        from CMN_HIS_SUM CHS2
+        JOIN 
+            (SELECT PSC2.SITE_ID,
+            PSC2.RESC_GUBN
+            FROM PRJ_SITE_CNRT PSC2) TEMP
+        ON CHS2.SITE_ID=TEMP.SITE_ID
+        where 1=1
+        <if test="siteId != null and  siteId != ''">
+        and CHS2.SITE_ID=#{siteId}
+        </if>
+        and CASE WHEN TEMP.RESC_GUBN='A' THEN PNT_ADDR = '2' ELSE PNT_ADDR='13134' END
+        and SUM_TYPE ='A'
+        <if test="startDt != null and  startDt != '' and endDt != null and  endDt != ''">
+        and DATE_FORMAT(TIME_STAMP,'%Y%m%d') between DATE_FORMAT(DATE_ADD(#{startDt},INTERVAL -1 YEAR),'%Y%m%d') and  DATE_FORMAT(DATE_ADD(#{endDt},INTERVAL -1 YEAR),'%Y%m%d')
+        </if>
+        <choose>
+            <when test="type == 'hour'">
+            group by TIME_STAMP
+            </when>
+            <when test="type == 'day'">
+            group by DATE_FORMAT(TIME_STAMP,'%Y%m%d')
+            </when>
+            <otherwise>
+            group by DATE_FORMAT(TIME_STAMP,'%Y%m')
+            </otherwise>
+        </choose>
+    ) B
+    ON PSC.SITE_ID =B.SITE_ID 
+    <choose>
+        <when test="type == 'hour'">
+            AND DATE_FORMAT(TIME_STAMP,'%m%d%H%i') = B.LAST_YEAR 
+        </when>
+        <otherwise>
+            AND DATE_FORMAT(TIME_STAMP,'%m%d') = B.LAST_YEAR 
+        </otherwise>
+    </choose>
+    LEFT OUTER JOIN (
+        select SITE_ID, 
+        <choose>
+            <when test="type == 'hour'">
+                concat('-') "GOAL_GENR_CAPA",
+            </when>
+            <when test="type == 'day'">
+                round((GOAL_GENR_CAPA/day(LAST_DAY(DATE_FORMAT(concat(GOAL_DT,'01') ,'%Y%m%d')))),1) "GOAL_GENR_CAPA", 
+            </when>
+            <otherwise>
+                round(GOAL_GENR_CAPA,1) "GOAL_GENR_CAPA", 
+            </otherwise>
+        </choose>
+        GOAL_DT
+        from PRJ_SITE_GOAL where 1=1
+        <if test="siteId != null and  siteId != ''">
+        and SITE_ID=#{siteId}
+        </if>
+        <if test="startDt != null and  startDt != '' and endDt != null and  endDt != ''">
+        and GOAL_DT between DATE_FORMAT(#{startDt},'%Y%m') and  DATE_FORMAT(#{endDt},'%Y%m') 
+        </if>
+    ) C
+    ON PSC.SITE_ID =C.SITE_ID and DATE_FORMAT(TIME_STAMP,'%Y%m') = C.GOAL_DT 
+    LEFT OUTER JOIN (
+        <choose>
+            <when test="type == 'hour'">
+                select DATE_FORMAT(TIME_STAMP,'%Y%m%d%H%i') "TS",
+            </when>
+            <when test="type == 'day'">
+                select DATE_FORMAT(TIME_STAMP,'%Y%m%d') "TS",
+            </when>
+            <otherwise>
+                select DATE_FORMAT(TIME_STAMP,'%Y%m') "TS",
+            </otherwise>
+        </choose>
+        SITE_ID,
+        <choose>
+            <when test="type == 'hour'">
+                round((TOTAL_IVT_AC/TOTAL_IVT_DC)*100,1) "EFF"
+            </when>
+            <otherwise>
+                round((sum(TOTAL_IVT_AC)/sum(TOTAL_IVT_DC))*100,1) "EFF"
+            </otherwise>
+        </choose> 
+        from CMN_PLANT_SUM
+        where 1=1
+        <if test="siteId != null and  siteId != ''">
+        and SITE_ID=#{siteId}
+        </if>
+        <if test="startDt != null and  startDt != '' and endDt != null and  endDt != ''">
+        and TIME_STAMP between DATE_FORMAT(#{startDt},'%Y%m%d') and  DATE_FORMAT(#{endDt},'%Y%m%d') 
+        </if>
+        <choose>
+            <when test="type == 'hour'">
+                group by TIME_STAMP
+            </when>
+            <when test="type == 'day'">
+                group by DATE_FORMAT(TIME_STAMP,'%Y%m%d')
+            </when>
+            <otherwise>
+                group by DATE_FORMAT(TIME_STAMP,'%Y%m')
+            </otherwise>
+        </choose>
+    ) D
+    <choose>
+        <when test="type == 'hour'">
+            ON PSC.SITE_ID =D.SITE_ID and DATE_FORMAT(TIME_STAMP,'%Y%m%d%H%i') = TS
+        </when>
+        <when test="type == 'day'">
+            ON PSC.SITE_ID =D.SITE_ID and DATE_FORMAT(TIME_STAMP,'%Y%m%d') = TS
+        </when>
+        <otherwise>
+            ON PSC.SITE_ID =D.SITE_ID and DATE_FORMAT(TIME_STAMP,'%Y%m') = TS
+        </otherwise>
+    </choose>
+    WHERE 1=1
+    AND PSC.DEL_YN = 'N'
+    <if test="siteId != null and  siteId != ''">
+    and CP.SITE_ID=#{siteId}
+    </if>
+    <choose>
+        <when test="type == 'hour'">
+        and CHS.SUM_TYPE ='A'
+        </when>
+        <otherwise>
+        and CHS.SUM_TYPE ='B'
+        </otherwise>
+    </choose>
+    and CASE WHEN PSC.RESC_GUBN='A' THEN CHS.PNT_ADDR = '2' ELSE CHS.PNT_ADDR='13134' END
+    AND IFNULL(PSC.MNG_STRT_DT, '') != ''
+    <if test="startDt != null and  startDt != '' and endDt != null and  endDt != ''">
+    and DATE_FORMAT(TIME_STAMP,'%Y%m%d') between DATE_FORMAT(#{startDt},'%Y%m%d') and  DATE_FORMAT(#{endDt},'%Y%m%d')
+    </if>
+    group by  
+    CP.SITE_ID, 
+    RESC_GUBN, 
+    CU2.USER_NAME, 
+    MODL_CAPA, 
+    <choose>
+        <when test="type == 'hour'">
+        CHS.TIME_STAMP
+        </when>
+        <when test="type == 'day'">
+        DATE_FORMAT(CHS.TIME_STAMP,'%Y%m%d')
+        </when>
+        <otherwise>
+        DATE_FORMAT(CHS.TIME_STAMP,'%Y%m') 
+        </otherwise>
+    </choose>
+    ) cnt;
+
+    </select>
+
+    <select  id="genStatListExcel" resultType="com.rest.api.model.st.GenGraphsVO" parameterType="com.rest.api.model.st.GenGraphVO">
+    select 
+        CP.SITE_ID as siteId, 
+        CASE WHEN RESC_GUBN='A' THEN 'PV' ELSE 'ESS' END as rescGubn,
+        CU.USER_NAME as userName,
+        CU2.USER_NAME as installerName,
+        MODL_CAPA as instCapa,
+        ROUND(GOAL_GENR_CAPA,1) as goalGenrCapa,
+        <choose>
+            <when test="type == 'hour'">
+            CHS.TIME_STAMP as nowDate, 
+            ROUND(TOTAL_AMOUNT/1000,1) as nowTotPwAmt, 
+            </when>
+            <when test="type == 'day'">
+            DATE_FORMAT(CHS.TIME_STAMP,'%Y-%m-%d') as nowDate, 
+            ROUND(SUM(TOTAL_AMOUNT)/1000,1) as nowTotPwAmt, 
+            </when>
+            <otherwise>
+            DATE_FORMAT(CHS.TIME_STAMP,'%Y-%m') as nowDate, 
+            ROUND(SUM(TOTAL_AMOUNT)/1000,1) as nowTotPwAmt, 
+            </otherwise>
+        </choose>
+        EFF as ivtEfficiency, 
+        <choose>
+            <when test="type == 'hour'">
+            concat('-') as energyYield,
+            </when>
+            <when test="type == 'day'">
+            ROUND(SUM(TOTAL_AMOUNT)/1000/MODL_CAPA,1) as energyYield,
+            </when>
+            <otherwise>
+            round(SUM(TOTAL_AMOUNT)/1000/MODL_CAPA/day(LAST_DAY(DATE_FORMAT(CHS.TIME_STAMP,'%Y%m%d'))),1) as energyYield,
+            </otherwise>
+        </choose>
+        B.LAST_YEAR ,
+        B.LAST_PROD as lastTotPwAmt,
+        <choose>
+            <when test="type == 'hour'">
+            WEATHER_MAIN as weather,
+            ROUND(WEATHER_TEMP,1) as temperature
+            </when>
+            <otherwise>
+            concat('-') as weather,
+            concat('-') as temperature
+            </otherwise>
+        </choose>
+        FROM PRJ_SITE_CNRT PSC
+            JOIN PRJ_SITE_USER PSU
+            ON PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD = 'ACN005'
+            LEFT JOIN PRJ_SITE_USER PSU2
+            ON PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD = 'ACN004'
+            LEFT JOIN PRJ_SITE_PLAN PSP
+            ON PSC.SITE_ID = PSP.SITE_ID
+            JOIN CMN_USER CU2
+            ON (PSU2.USER_SEQ = CU2.USER_SEQ)
+            JOIN CMN_USER CU
+            ON (PSU.USER_SEQ = CU.USER_SEQ)
+            LEFT JOIN CMN_PLANT CP
+            ON PSC.SITE_ID = CP.SITE_ID
+            LEFT JOIN CMN_PLANT_FAC CPF
+            ON CP.PLANT_ID = CPF.PLANT_ID
+            LEFT JOIN CMN_HIS_SUM CHS
+            ON CHS.SITE_ID = PSP.SITE_ID
+        LEFT OUTER JOIN (
+        select CHS2.SITE_ID,   
+        <choose>
+            <when test="type == 'hour'">
+            DATE_FORMAT(TIME_STAMP,'%m%d%H%i')"LAST_YEAR", 
+            ROUND(TOTAL_AMOUNT/1000,1)"LAST_PROD" 
+            </when>
+            <otherwise>
+            DATE_FORMAT(TIME_STAMP,'%m%d')"LAST_YEAR",
+            ROUND(sum(TOTAL_AMOUNT)/1000,1)"LAST_PROD" 
+            </otherwise>
+        </choose>
+        from CMN_HIS_SUM CHS2
+        JOIN (
+            SELECT PSC2.SITE_ID,
+            PSC2.RESC_GUBN
+            FROM PRJ_SITE_CNRT PSC2) TEMP
+        ON CHS2.SITE_ID=TEMP.SITE_ID
+        <if test="siteId != null and  siteId != ''">
+        and CHS2.SITE_ID=#{siteId}
+        </if>
+        and CASE WHEN TEMP.RESC_GUBN='A' THEN PNT_ADDR = '2' ELSE PNT_ADDR='13134' END
+        and SUM_TYPE ='A'
+        <if test="startDt != null and  startDt != '' and endDt != null and  endDt != ''">
+        and DATE_FORMAT(TIME_STAMP,'%Y%m%d') between DATE_FORMAT(DATE_ADD(#{startDt},INTERVAL -1 YEAR),'%Y%m%d') and  DATE_FORMAT(DATE_ADD(#{endDt},INTERVAL -1 YEAR),'%Y%m%d')
+        </if>
+        <choose>
+            <when test="type == 'hour'">
+            group by TIME_STAMP
+            </when>
+            <when test="type == 'day'">
+            group by DATE_FORMAT(TIME_STAMP,'%Y%m%d')
+            </when>
+            <otherwise>
+            group by DATE_FORMAT(TIME_STAMP,'%Y%m')
+            </otherwise>
+        </choose>
+        ) B
+        ON PSC.SITE_ID =B.SITE_ID 
+        <choose>
+            <when test="type == 'hour'">
+                AND DATE_FORMAT(TIME_STAMP,'%m%d%H%i') = B.LAST_YEAR 
+            </when>
+            <otherwise>
+                AND DATE_FORMAT(TIME_STAMP,'%m%d') = B.LAST_YEAR 
+            </otherwise>
+        </choose>
+    LEFT OUTER JOIN (
+    select SITE_ID, 
+        <choose>
+            <when test="type == 'hour'">
+                concat('-') "GOAL_GENR_CAPA",
+            </when>
+            <when test="type == 'day'">
+                round((GOAL_GENR_CAPA/day(LAST_DAY(DATE_FORMAT(concat(GOAL_DT,'01') ,'%Y%m%d')))),1) "GOAL_GENR_CAPA", 
+            </when>
+            <otherwise>
+                round(GOAL_GENR_CAPA,1) "GOAL_GENR_CAPA", 
+            </otherwise>
+        </choose>
+        GOAL_DT
+        from PRJ_SITE_GOAL 
+        where 1=1
+        <if test="siteId != null and  siteId != ''">
+        and SITE_ID=#{siteId}
+        </if>
+        <if test="startDt != null and  startDt != '' and endDt != null and  endDt != ''">
+        and GOAL_DT between DATE_FORMAT(#{startDt},'%Y%m') and  DATE_FORMAT(#{endDt},'%Y%m') 
+        </if>
+        ) C
+    ON PSC.SITE_ID =C.SITE_ID and DATE_FORMAT(TIME_STAMP,'%Y%m') = C.GOAL_DT 
+    LEFT OUTER JOIN (
+        <choose>
+            <when test="type == 'hour'">
+                select DATE_FORMAT(TIME_STAMP,'%Y%m%d%H%i') "TS",
+            </when>
+            <when test="type == 'day'">
+                select DATE_FORMAT(TIME_STAMP,'%Y%m%d') "TS",
+            </when>
+            <otherwise>
+                select DATE_FORMAT(TIME_STAMP,'%Y%m') "TS",
+            </otherwise>
+        </choose>
+        SITE_ID, 
+        <choose>
+            <when test="type == 'hour'">
+                round((TOTAL_IVT_AC/TOTAL_IVT_DC)*100,1) "EFF"
+            </when>
+            <otherwise>
+                round((sum(TOTAL_IVT_AC)/sum(TOTAL_IVT_DC))*100,1) "EFF"
+            </otherwise>
+        </choose> 
+        from CMN_PLANT_SUM
+        where 1=1
+        <if test="siteId != null and  siteId != ''">
+        and SITE_ID=#{siteId}
+        </if>
+        <if test="startDt != null and  startDt != '' and endDt != null and  endDt != ''">
+        and TIME_STAMP between DATE_FORMAT(#{startDt},'%Y%m%d') and  DATE_FORMAT(#{endDt},'%Y%m%d') +1
+        </if>
+        <choose>
+            <when test="type == 'hour'">
+                group by TIME_STAMP
+            </when>
+            <when test="type == 'day'">
+                group by DATE_FORMAT(TIME_STAMP,'%Y%m%d')
+            </when>
+            <otherwise>
+                group by DATE_FORMAT(TIME_STAMP,'%Y%m')
+            </otherwise>
+        </choose>        
+    ) D
+    <choose>
+        <when test="type == 'hour'">
+            ON PSC.SITE_ID =D.SITE_ID and DATE_FORMAT(TIME_STAMP,'%Y%m%d%H%i') = TS
+        </when>
+        <when test="type == 'day'">
+            ON PSC.SITE_ID =D.SITE_ID and DATE_FORMAT(TIME_STAMP,'%Y%m%d') = TS
+        </when>
+        <otherwise>
+            ON PSC.SITE_ID =D.SITE_ID and DATE_FORMAT(TIME_STAMP,'%Y%m') = TS
+        </otherwise>
+    </choose>        
+    LEFT OUTER JOIN (
+        select 
+            DATE_FORMAT(TIME_STAMP,'%Y%m%d%H%i') "TS_WE", 
+            SITE_ID, 
+            <choose>
+                <when test="type == 'hour'">
+                    WEATHER_MAIN "WEATHER_MAIN",
+                </when>
+                <otherwise>
+                    concat('-') "WEATHER_MAIN",
+                </otherwise>
+            </choose>
+            <choose>
+                <when test="type == 'hour'">
+                    WEATHER_TEMP-273.15 "WEATHER_TEMP"
+                </when>
+                <otherwise>
+                    concat('-') "WEATHER_TEMP"
+                </otherwise>
+            </choose>
+            from CMN_PLANT_WEATHER
+            where 1=1
+            <if test="siteId != null and  siteId != ''">
+            and SITE_ID=#{siteId}
+            </if>
+            <if test="startDt != null and  startDt != '' and endDt != null and  endDt != ''">
+            and TIME_STAMP between DATE_FORMAT(#{startDt},'%Y%m%d') and  DATE_FORMAT(#{endDt},'%Y%m%d')+1
+            </if>
+            <choose>    
+                <when test="type == 'hour'">
+                    group by TIME_STAMP
+                </when>
+                <when test="type == 'day'">
+                    group by DATE_FORMAT(TIME_STAMP,'%Y%m%d')
+                </when>
+                <otherwise>
+                    group by DATE_FORMAT(TIME_STAMP,'%Y%m')
+                </otherwise>
+            </choose>   
+        ) E
+        <choose>
+            <when test="type == 'hour'">
+                ON PSC.SITE_ID =E.SITE_ID and DATE_FORMAT(TIME_STAMP,'%Y%m%d%H%i') = TS_WE
+            </when>
+            <when test="type == 'day'">
+                ON PSC.SITE_ID =E.SITE_ID and DATE_FORMAT(TIME_STAMP,'%Y%m%d') = TS_WE
+            </when>
+            <otherwise>
+                ON PSC.SITE_ID =E.SITE_ID and DATE_FORMAT(TIME_STAMP,'%Y%m') = TS_WE
+            </otherwise>
+        </choose>
+    WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        <if test="siteId != null and  siteId != ''">
+        and CP.SITE_ID=#{siteId}
+        </if>
+        <choose>
+            <when test="type == 'hour'">
+            and CHS.SUM_TYPE ='A'
+            </when>
+            <otherwise>
+            and CHS.SUM_TYPE ='B'
+            </otherwise>
+        </choose>
+        and CASE WHEN PSC.RESC_GUBN='A' THEN CHS.PNT_ADDR = '2' ELSE CHS.PNT_ADDR='13134' END
+        AND IFNULL(PSC.MNG_STRT_DT, '') != ''
+        <if test="startDt != null and  startDt != '' and endDt != null and  endDt != ''">
+        and DATE_FORMAT(TIME_STAMP,'%Y%m%d') between DATE_FORMAT(#{startDt},'%Y%m%d') and  DATE_FORMAT(#{endDt},'%Y%m%d')
+        </if>
+        group by  
+        CP.SITE_ID, 
+        RESC_GUBN, 
+        CU2.USER_NAME, 
+        MODL_CAPA, 
+    <choose>
+        <when test="type == 'hour'">
+        CHS.TIME_STAMP
+        </when>
+        <when test="type == 'day'">
+        DATE_FORMAT(CHS.TIME_STAMP,'%Y%m%d')
+        </when>
+        <otherwise>
+        DATE_FORMAT(CHS.TIME_STAMP,'%Y%m') 
+        </otherwise>
+    </choose>        
+    Order by TIME_STAMP asc;
+    </select>
+
+</mapper>

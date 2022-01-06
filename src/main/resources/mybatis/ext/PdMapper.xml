@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.rest.api.service.ext.PdMapper">
+   
+   
+    <insert id="insertCurrentData" parameterType="com.rest.api.model.ext.PdResultVO" >
+		    INSERT INTO PD_ENERGY_PRICE 
+		    							(REGION_ID,LAST_CHNG_DTTI,RRP,DEMAND,CURRENT_YN)
+			         VALUES (#{regionId},#{lastChngDtti},#{rrp},#{demand},'Y')
+			ON DUPLICATE KEY 
+    				UPDATE            
+								   RRP =#{rrp},
+								   DEMAND = #{demand},
+						           CURRENT_YN ='Y'
+    </insert>
+    
+    <insert id="insertForcastingData" parameterType="java.util.List" >
+		    INSERT INTO PD_ENERGY_PRICE 
+		    							(REGION_ID,LAST_CHNG_DTTI,RRP,DEMAND,CURRENT_YN)
+		    		 VALUES
+		    		<foreach item="item" index="index" collection="list"  separator=",">
+			         	(#{item.regionId},#{item.lastChngDtti},#{item.rrp},#{item.demand},'N')
+			         </foreach>
+			ON DUPLICATE KEY 						
+    				UPDATE            
+								   RRP = CASE WHEN CURRENT_YN = 'Y' THEN RRP  ELSE   VALUES(RRP)  END,
+								   DEMAND = CASE WHEN  CURRENT_YN = 'Y' THEN DEMAND ELSE  VALUES(DEMAND) END,
+						           CURRENT_YN = CASE WHEN  CURRENT_YN = 'Y' THEN  CURRENT_YN  ELSE  VALUES(CURRENT_YN)  END				     			
+			 
+    </insert>
+
+</mapper>

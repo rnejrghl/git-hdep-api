@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.rest.api.service.mm.CmnUserMapper">
+  
+    <select id="userList" parameterType="com.rest.api.model.mm.CmnUserVO" resultType="com.rest.api.model.mm.CmnUserVO">
+        SELECT
+        USER_ID 			AS userId		/* 사용자ID (국가코드(2)+년월(6)+일련번호(5)) */
+        , USER_NAME 		AS userName		/* 사용자명 */
+        , TEL_NO 			AS telNo		/* 전화번호 */
+        , EMAIL 			AS email		/* 이메일 */
+        , SMS_ALRM_YN 		AS smsAlrmYn	/* SMS알람여부 (default:Y) */
+        , EMAIL_ALRM_YN 	AS emailAlrmYn	/* Email알람여부 (default:Y) */
+        , USER_LVL_CD 		AS userLvlCd	/* 사용자등급코드 (코드ID : CDK-00017) */
+        , MENU_ROLE_ID 	    AS menuRoleId	/* 메뉴권한ID */
+        , INQ_GRP_ID 		AS inqGrpId		/* 조회그룹ID */
+        , USE_YN			AS useYn		/* 사용여부 */
+        , USER_SEQ          AS userSeq
+        FROM CMN_USER
+        WHERE 1=1
+        AND DEL_YN = 'N'
+        <if test="userId != null and  userId != ''">
+        AND USER_ID 		= #{userId}			/* 사용자ID (국가코드(2)+년월(6)+일련번호(5)) */
+        </if>
+
+        <if test="userLvlCd != null and  userLvlCd != ''">
+        AND USER_LVL_CD 	= #{userLvlCd}		/* 사용자등급코드 (코드ID : CDK-00017) */
+        </if>
+
+        <if test="userName != null and  userName != ''">
+        AND USER_NAME 		= #{userName}		/* 사용자명 */
+        </if>
+
+        <if test="telNo != null and  telNo != ''">
+        AND TEL_NO 			= #{telNo}			/* 전화번호 */
+        </if>
+
+        <if test="email != null and  email != ''">
+        AND EMAIL 			= #{email}			/* 이메일 */
+        </if>
+
+        <if test="useYn != null and  useYn != ''">
+        AND USE_YN 			= #{useYn}			/* 사용여부 */
+        </if>
+
+        <if test="userSeq != null and  userSeq != ''">
+            AND USER_SEQ 		= #{userSeq}			/* 사용자번호 */
+        </if>
+        <if test="menuRoleId != null and  menuRoleId != ''">
+            AND MENU_ROLE_ID 			= #{menuRoleId}			/* 메뉴권한ID */
+        </if>
+
+        <if test="inqGrpId != null and  inqGrpId != ''">
+            AND INQ_GRP_ID 		= #{inqGrpId}			/* 조회그룹ID */
+        </if>
+
+        <if test="userLvlCdList != null and  userLvlCdList != ''">
+            AND USER_LVL_CD IN (
+            <foreach collection="userLvlCdList" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+
+
+
+
+    </select>
+    <select id="userListExcel" parameterType="com.rest.api.model.mm.CmnUserVO" resultType="com.rest.api.model.mm.CmnUserVO">
+        SELECT
+        CU.USER_ID 			AS userId		/* 사용자ID (국가코드(2)+년월(6)+일련번호(5)) */
+        , CU.USER_NAME 		AS userName		/* 사용자명 */
+        , CU.TEL_NO 		AS telNo		/* 전화번호 */
+        , CU.EMAIL 			AS email		/* 이메일 */
+        , CU.SMS_ALRM_YN 	AS smsAlrmYn	/* SMS알람여부 (default:Y) */
+        , CU.EMAIL_ALRM_YN 	AS emailAlrmYn	/* Email알람여부 (default:Y) */
+        , CC.CD_NAME     	AS userLvlCd	/* 사용자등급코드 (코드ID : CDK-00017) */
+        , CR.MENU_ROLE_NAME AS menuRoleId	/* 메뉴권한ID */
+        , CIR.INQ_GRP_NAME 	AS inqGrpId		/* 조회그룹ID */
+        , CU.USE_YN			AS useYn		/* 사용여부 */
+        , CU.USER_SEQ       AS userSeq
+        FROM CMN_USER CU
+        LEFT OUTER JOIN CMN_CMCD CC ON CU.USER_LVL_CD = CC.CD AND CC.GRP_CD = 'CDK-00017'
+        LEFT OUTER JOIN CMN_ROLE CR ON CU.MENU_ROLE_ID = CR.MENU_ROLE_ID
+        LEFT OUTER JOIN CMN_INQ_ROLE CIR ON CU.INQ_GRP_ID = CIR.INQ_GRP_ID
+        WHERE 1=1
+        AND CU.DEL_YN = 'N'
+
+        <if test="userId != null and  userId != ''">
+            AND CU.USER_ID 		= #{userId}			/* 사용자ID (국가코드(2)+년월(6)+일련번호(5)) */
+        </if>
+
+        <if test="userLvlCd != null and  userLvlCd != ''">
+            AND CU.USER_LVL_CD 	= #{userLvlCd}		/* 사용자등급코드 (코드ID : CDK-00017) */
+        </if>
+
+        <if test="userName != null and  userName != ''">
+            AND CU.USER_NAME 		= #{userName}		/* 사용자명 */
+        </if>
+
+        <if test="telNo != null and  telNo != ''">
+            AND CU.TEL_NO 			= #{telNo}			/* 전화번호 */
+        </if>
+
+        <if test="email != null and  email != ''">
+            AND CU.EMAIL 			= #{email}			/* 이메일 */
+        </if>
+
+        <if test="useYn != null and  useYn != ''">
+            AND CU.USE_YN 			= #{useYn}			/* 사용여부 */
+        </if>
+
+        <if test="userSeq != null and  userSeq != ''">
+            AND CU.USER_SEQ 		= #{userSeq}			/* 사용자번호 */
+        </if>
+        <if test="menuRoleId != null and  menuRoleId != ''">
+            AND CU.MENU_ROLE_ID 			= #{menuRoleId}			/* 메뉴권한ID */
+        </if>
+
+        <if test="inqGrpId != null and  inqGrpId != ''">
+            AND INQ_GRP_ID 		= #{inqGrpId}			/* 조회그룹ID */
+        </if>
+
+        <if test="userLvlCdList != null and  userLvlCdList != ''">
+            AND CU.USER_LVL_CD IN (
+            <foreach collection="userLvlCdList" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+
+
+
+
+    </select>
+    <insert id="join" parameterType="com.rest.api.model.mm.CmnUserInsert">
+        <selectKey keyProperty="userId" resultType="String" order="BEFORE">
+            SELECT
+            CONCAT(CONCAT('AU',date_format(NOW(),'%Y%m')),(SELECT  LPAD(IFNULL(MAX(SUBSTRING(USER_ID,9,5)),0)+1,5,0) FROM CMN_USER CU WHERE 1=1 AND SUBSTRING(USER_ID,1,8) = CONCAT('AU',date_format(NOW(),'%Y%m'))))
+            FROM DUAL
+        </selectKey>
+        <![CDATA[
+        INSERT INTO CMN_USER
+        (
+            USER_ID
+            ,USER_NAME
+            ,LAST_CHNG_USEQ
+            ,TEL_NO
+            ,EMAIL
+            ,SMS_ALRM_YN
+            ,EMAIL_ALRM_YN
+            ,USER_LVL_CD
+            ,MENU_ROLE_ID
+            ,INQ_GRP_ID
+            ,USE_YN
+        )
+        VALUES
+        (
+            #{userId}
+            ,#{userName}
+            ,IFNULL(#{lastChngUseq},'0')
+            ,#{telNo}
+            ,#{email}
+            ,IFNULL(#{smsAlrmYn},'N')
+            ,IFNULL(#{emailAlrmYn},'N')
+            ,#{userLvlCd}
+            ,#{menuRoleId}
+            ,#{inqGrpId}
+            ,IFNULL(#{useYn},'Y')
+        )
+    ]]>
+
+    </insert>
+    <update id="userPassSet" parameterType="com.rest.api.model.mm.CmnUserInsert">
+      UPDATE CMN_USER
+        SET PSWD  = #{pswd} 	/* 비밀번호 암호 */
+        ,LAST_CHNG_USEQ = #{userSeq}
+      WHERE 1=1
+        AND USER_SEQ = #{userSeq}
+
+    </update>
+
+    <update id="userUpdate" parameterType="com.rest.api.model.mm.CmnUserUpdate">
+      UPDATE CMN_USER
+        SET
+         USER_ID = #{userId}
+        ,USER_NAME = #{userName}
+        ,TEL_NO = #{telNo}
+        ,EMAIL = #{email}
+        ,SMS_ALRM_YN = #{smsAlrmYn}
+        ,EMAIL_ALRM_YN = #{emailAlrmYn}
+        ,USER_LVL_CD = #{userLvlCd}
+        ,MENU_ROLE_ID = #{menuRoleId}
+        ,INQ_GRP_ID = #{inqGrpId}
+        , USE_YN = #{useYn}
+        ,LAST_CHNG_USEQ = #{lastChngUseq}
+      WHERE 1=1
+        AND USER_SEQ = #{userSeq}
+
+    </update>
+
+    <select id="pswdChk" parameterType="com.rest.api.model.mm.CmnUserVO" resultType="com.rest.api.model.mm.CmnUserVO">
+    SELECT
+         USER_ID AS userId
+        ,USER_NAME AS userName
+        ,PSWD AS pswd
+        ,USER_SEQ AS userSeq
+    FROM CMN_USER
+    WHERE 1 =1
+      AND USER_SEQ = #{userSeq}
+      AND DEL_YN = 'N'
+
+    </select>
+
+    <select id="userSeq" parameterType="String" resultType="com.rest.api.model.mm.CmnUserVO">
+    SELECT
+         USER_ID AS userId
+        ,USER_NAME AS userName
+        ,PSWD AS pswd
+        ,USER_SEQ AS userSeq
+    FROM CMN_USER
+    WHERE 1 =1
+      AND USER_SEQ = #{userSeq}
+      AND DEL_YN = 'N'
+    </select>
+
+    <update id="userDelete" parameterType="com.rest.api.model.mm.CmnUserVO">
+      UPDATE CMN_USER
+        SET DEL_YN  = 'Y'	/* 비밀번호 암호 */
+        ,LAST_CHNG_USEQ = #{lastChngUseq}
+      WHERE 1=1
+        AND USER_SEQ = #{userSeq}
+
+    </update>
+</mapper>

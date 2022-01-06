@@ -1,0 +1,781 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.rest.api.service.common.CommonMapper">
+
+	<select id="codeList"
+		parameterType="com.rest.api.model.common.CommonVO"
+		resultType="com.rest.api.model.common.CommonVO">
+		SELECT
+		GRP_CD AS grpCd
+		,CD AS cd
+		,GRP_CD_NAME AS grpCdName
+		,CD_NAME AS cdName
+		,UPPR_GRP_CD AS upprGrpCd
+		FROM CMN_CMCD
+		WHERE 1=1
+		<if test="grpCds != null and  grpCds != ''">
+			AND GRP_CD IN (
+			<foreach collection="grpCds" item="item" index="index"
+				separator=",">
+				'${item}'
+			</foreach>
+			)
+		</if>
+	</select>
+ 
+
+	<select id="codeMainList"
+		parameterType="com.rest.api.model.common.CmnCmcdVO"
+		resultType="com.rest.api.model.common.CmnCmcdVO">
+		SELECT
+		grpCd
+		,grpCdName
+		,cdDesc
+		FROM(SELECT
+		GRP_CD AS grpCd
+		,GRP_CD_NAME AS grpCdName
+		,CD_DESC AS cdDesc
+		FROM CMN_CMCD
+		WHERE 1=1
+		GROUP BY GRP_CD) AA
+		WHERE 1 =1
+		<if test="grpCd != null and  grpCd != ''">
+			AND grpCd = #{grpCd}
+		</if>
+
+	</select>
+	<select id="codeSubList"
+		parameterType="com.rest.api.model.common.CmnCmcdSubVO"
+		resultType="com.rest.api.model.common.CmnCmcdSubVO">
+		SELECT
+		grpCd
+		,grpCdName
+		,cd
+		,cdName
+		,cdDesc
+		,upprGrdCd
+		,inqOrd
+		FROM(SELECT
+		GRP_CD AS grpCd
+		,GRP_CD_NAME AS grpCdName
+		,CD AS cd
+		,CD_NAME AS cdName
+		,CD_DESC AS cdDesc
+		,UPPR_GRP_CD AS upprGrdCd
+		,INQ_ORD AS inqOrd
+		FROM CMN_CMCD
+		WHERE 1=1) AA
+		WHERE 1 =1
+		<if test="grpCd != null and  grpCd != ''">
+			AND grpCd = #{grpCd}
+		</if>
+
+	</select>
+
+	<insert id="codeInsert"
+		parameterType="com.rest.api.model.common.CommonInsert">
+		INSERT INTO CMN_CMCD
+		(
+		GRP_CD
+		,GRP_CD_NAME
+		,CD
+		,CD_NAME
+		,CD_DESC
+		,UPPR_GRP_CD
+		,INQ_ORD
+		,LAST_CHNG_USEQ
+		)
+		VALUES
+		(
+		#{grpCd}
+		,#{grpCdName}
+		,#{cd}
+		,#{cdName}
+		,#{cdDesc}
+		,#{upprGrpCd}
+		,#{inqOrd}
+		,'0'
+
+		)
+
+	</insert>
+	<update id="codeUpdate"
+		parameterType="com.rest.api.model.common.CommonUpdate">
+		UPDATE CMN_CMCD SET
+
+		CD_NAME = #{cdName}
+		<if test="grpCdName != null">
+			,GRP_CD_NAME = #{grpCdName}
+		</if>
+
+		<if test="cdDesc != null">
+			,CD_DESC = #{cdDesc}
+		</if>
+		<if test="upprGrpCd != null">
+			,UPPR_GRP_CD = #{upprGrpCd}
+		</if>
+		<if test="inqOrd != null">
+			,INQ_ORD = #{inqOrd}
+		</if>
+		WHERE 1= 1
+		AND GRP_CD = #{grpCd}
+		AND cd =#{cd}
+	</update>
+	<delete id="codeDelete"
+		parameterType="com.rest.api.model.common.CommonVO">
+		DELETE FROM CMN_CMCD
+		WHERE 1=1
+		AND GRP_CD = #{grpCd}
+		AND cd =#{cd}
+	</delete>
+
+
+	<select id="codeDtl"
+		parameterType="com.rest.api.model.common.CommonVO"
+		resultType="com.rest.api.model.common.CommonVO">
+		SELECT
+		GRP_CD AS grpCd
+		,CD AS cd
+		,GRP_CD_NAME AS grpCdName
+		,CD_NAME AS cdName
+		,INQ_ORD AS inqOrd
+		FROM CMN_CMCD
+		WHERE 1 =1
+		AND CD = #{cd}
+	</select>
+	
+	<select id="selectFileId" parameterType="com.rest.api.model.pp.SiteFileVO" resultType="com.rest.api.model.pp.SiteFileVO">		            
+          SELECT           			 
+          			FILE_ID as fileId          			
+          	FROM CMN_FILE
+			WHERE 1=1
+			AND FILE_SEQ = #{fileSeq}    	
+	</select>
+
+	<delete id="fileDelete" parameterType="com.rest.api.model.pp.SiteFileVO">	
+		DELETE FROM CMN_FILE
+		WHERE 1=1
+		AND FILE_SEQ = #{fileSeq}		
+	</delete>
+	
+	<delete id="siteFileDelete" parameterType="com.rest.api.model.pp.SiteFileVO">	
+		DELETE FROM CMN_SITE_FILE
+		WHERE 1=1
+		AND FILE_ID = #{fileId}		
+	</delete>
+
+	<insert id="newFileInsert"
+		parameterType="com.rest.api.model.common.FileInsert">
+		<selectKey keyProperty="fileId" resultType="String"
+			order="BEFORE">
+            <![CDATA[
+           SELECT (CASE
+            WHEN #{fileId} != "" AND  #{fileId} IS NOT NULL THEN
+            #{fileId}
+            ELSE
+            (SELECT IFNULL(MAX(CF.FILE_ID),0)+1 FROM CMN_FILE CF)
+            END) FROM DUAL
+              ]]>
+		</selectKey>
+        <![CDATA[
+        INSERT INTO CMN_FILE
+        (
+             FILE_ID
+            ,LAST_CHNG_USEQ
+            ,REAL_FILE_NAME
+            ,FILE_PATH
+        )
+        VALUES
+        (
+            #{fileId}
+            ,'0'
+            ,#{realFileName}
+            ,#{filePath}
+
+        )
+    ]]>
+
+	</insert>
+
+	<insert id="fileInsert"
+		parameterType="com.rest.api.model.common.FileInsert">
+
+        <![CDATA[
+        INSERT INTO CMN_FILE
+        (
+             FILE_ID
+            ,LAST_CHNG_USEQ
+            ,REAL_FILE_NAME
+            ,FILE_PATH
+        )
+        VALUES
+        (
+            #{fileId}
+            ,'0'
+            ,#{realFileName}
+            ,#{filePath}
+
+        )
+    ]]>
+
+
+	</insert>
+
+
+	<select id="fileInfo" parameterType="String"
+		resultType="com.rest.api.model.common.CmnMsgVO">
+		SELECT
+		FILE_SEQ AS fileSeq
+		,FILE_ID AS fileId
+		,REAL_FILE_NAME AS realFileName
+		,FILE_PATH AS filePath
+		FROM CMN_FILE
+		WHERE 1 =1
+		AND FILE_ID = #{fileId}
+	</select>
+
+
+	<insert id="cmnSendHistInsert"
+		parameterType="com.rest.api.model.common.SendHistInsert">
+		INSERT INTO CMN_SEND_HIST
+		(
+		LAST_CHNG_USEQ /* 최종작업자번호 */
+		, SEND_DT /* 발송일시 */
+		, SEND_GUBN /* 발송구분 (SMS/MAIL) */
+		, ALRM_NAME /* 알람명 */
+		, RECV_SEQ /* 수신자번호 */
+		, SEND_GUBN_CNTN /* 발송구분내용 (발송구분에 따른 전화번호 또는 메일주소) */
+		, SEND_RSLT_CD /* 발송결과코드 (S(Success)/F(Fail)) */
+		, SEND_CNTN /* 발송내역 */
+		, MSG_ID /* 발송메시지ID */
+		)
+		VALUES
+		(
+		#{lastChngUseq} /* 최종작업자번호 */
+		, NOW() /* 발송일시 */
+		, #{sendGubn} /* 발송구분 (SMS/MAIL) */
+		, #{alrmName} /* 알람명 */
+		, #{recvSeq} /* 수신자번호 */
+		, #{sendGubnCntn} /* 발송구분내용 (발송구분에 따른 전화번호 또는 메일주소) */
+		, #{sendRsltCd} /* 발송결과코드 (S(Success)/F(Fail)) */
+		, #{sendCntn} /* 발송내역 */
+		, #{msgId} /* 발송메시지ID */
+		)
+
+	</insert>
+
+	<select id="notice"
+		parameterType="com.rest.api.model.common.NoticeVO"
+		resultType="com.rest.api.model.common.NoticeVO">
+		SELECT
+		NOTI_ID AS notiId /* 공지ID */
+		,NOTI_NAME AS notiName /* 공지알람명 */
+		,SMS_YN AS smsYn /* SMS여부 */
+		,SMS_CNTN AS smsCntn /* SMS내용 */
+		,MAIL_YN AS mailYn /* MAIL여부 */
+		,MAIL_TITL AS mailTitl /* 제목 */
+		,MAIL_HEAD AS mailHead /* 머릿말 */
+		,MAIL_CNTN AS mailCntn /* 본문 */
+		,MAIL_FTER AS mailFter /* 꼬리말 */
+		,USER_LVL_CD AS userLvlCd /* 사용자등급코드 (코드ID : CDK-00017) */
+		FROM CMN_NOTI
+		WHERE 1=1
+		<if test="notiId != null and  notiId != ''">
+			AND NOTI_ID = #{notiId}
+		</if>
+	</select>
+
+	<select id="woNotice"
+		resultType="com.rest.api.model.common.WoNoticeVO">
+		SELECT
+		NOTI_ID AS notiId /* 공지ID */
+		,(CASE
+		WHEN NOTI_ID = 'notice001' THEN 'WT0001'
+		WHEN NOTI_ID = 'notice002' THEN 'WT0001'
+		WHEN NOTI_ID = 'notice003' THEN 'WT0002'
+		WHEN NOTI_ID = 'notice004' THEN 'WT0003'
+		WHEN NOTI_ID = 'notice005' THEN 'WT0004'
+		END) AS workOrdTyp
+		,(CASE
+		WHEN NOTI_ID = 'notice001' THEN 'A'
+		WHEN NOTI_ID = 'notice002' THEN 'B'
+		WHEN NOTI_ID = 'notice003' THEN ''
+		WHEN NOTI_ID = 'notice004' THEN ''
+		WHEN NOTI_ID = 'notice005' THEN ''
+		END) AS rescGubn
+		,NOTI_NAME AS notiName /* 공지알람명 */
+		,SMS_YN AS smsYn /* SMS여부 */
+		,SMS_CNTN AS smsCntn /* SMS내용 */
+		,MAIL_YN AS mailYn /* MAIL여부 */
+		,MAIL_TITL AS mailTitl /* 제목 */
+		,MAIL_HEAD AS mailHead /* 머릿말 */
+		,MAIL_CNTN AS mailCntn /* 본문 */
+		,MAIL_FTER AS mailFter /* 꼬리말 */
+		,USER_LVL_CD AS userLvlCd /* 사용자등급코드 (코드ID : CDK-00017) */
+
+		FROM CMN_NOTI
+		WHERE 1=1
+		AND NOTI_ID IN
+		('notice001','notice002','notice003','notice004','notice005')
+
+	</select>
+
+
+	<select id="siteAuthList" parameterType="String"
+		resultType="String">
+		SELECT
+		cis.SITE_ID
+		FROM CMN_INRL_SITE cis
+		INNER JOIN CMN_USER cu ON cis.INQ_GRP_ID = cu.INQ_GRP_ID AND USER_SEQ =
+		#{userSeq}
+
+	</select>
+
+	<select id="adminChk" parameterType="String" resultType="String">
+		SELECT
+		(CASE
+		WHEN USER_LVL_CD = 'ACN001' OR USER_LVL_CD = 'ACN006' OR USER_LVL_CD =
+		'ACN002'
+		THEN 'Y'
+		ELSE 'N'
+		END) AS adminYn
+		FROM CMN_USER
+		WHERE 1 = 1
+		AND USER_SEQ = #{userSeq}
+
+
+	</select>
+
+	<select id="siteAuthAdminList" resultType="String">
+		SELECT
+		SITE_ID
+		FROM PRJ_SITE_CNRT
+		WHERE 1 = 1
+		AND DEL_YN = 'N'
+	</select>
+
+
+	<insert id="codePpInsert"
+		parameterType="com.rest.api.model.common.CommonPpInsert">
+		INSERT INTO CMN_CMCD
+		(
+		GRP_CD
+		,GRP_CD_NAME
+		,CD
+		,CD_NAME
+		,CD_DESC
+		,LAST_CHNG_USEQ
+		,FILD_1
+		,FILD_2
+		)
+		VALUES
+		(
+		'CDK-00020'
+		,'연도별사업현황'
+		,#{yyyyVal}
+		,'연도별사업현황'
+		,'사업관리(Project Planning)에서 PCS제조사정보 설정 시 활용'
+		,'0'
+		,{fildPv}
+		,{fildPvEss}
+
+		)
+
+	</insert>
+
+	<update id="codePpUpdate"
+		parameterType="com.rest.api.model.common.CommonPpUpdate">
+		UPDATE CMN_CMCD SET
+		FILD_1 = #{fildPv}
+		,FILE_2 = #{fildPvEss}
+		WHERE 1= 1
+		AND GRP_CD = 'CDK-00020'
+		AND CD =#{yyyyVal}
+	</update>
+
+	<select id="codePpList"
+		resultType="com.rest.api.model.common.CommonPpVO">
+		SELECT
+		CD_NAME AS cdName
+		,CD_DESC AS cdDesc
+		,CD AS yyyyVal
+		,FILD_1 AS fildPv
+		,FILD_2 AS fildPvEss
+		FROM CMN_CMCD
+		WHERE GRP_CD = 'CDK-00020'
+	</select>
+
+	<select id="codePpNow"
+		resultType="com.rest.api.model.common.CommonPpVO">
+		SELECT
+		CD_NAME AS cdName
+		,CD_DESC AS cdDesc
+		,CD AS yyyyVal
+		,FILD_1 AS fildPv
+		,FILD_2 AS fildPvEss
+		FROM CMN_CMCD
+		WHERE GRP_CD = 'CDK-00020'
+		AND CD = DATE_FORMAT(NOW(), '%Y')
+	</select>
+
+	<select id="country"
+		resultType="com.rest.api.model.common.CommonCountryVO">
+		SELECT
+		CD AS cd
+		,CD_NAME AS cdName
+		,CD_ENG_NAME AS cdEngName
+		,(SELECT cc.CD FROM CMN_CMCD cc WHERE cc.GRP_CD = 'CDK-00013' AND cc.CD='AU')
+		AS currUnit
+		FROM CMN_CMCD
+		WHERE 1=1
+		AND GRP_CD = 'CDK-00004'
+		AND CD ='AU'
+	</select>
+	<select id="cityList"
+		resultType="com.rest.api.model.common.CommonCityVO">
+		SELECT
+		CD AS cd
+		,CD_NAME AS cdName
+		,CD_ENG_NAME AS cdEngName
+		,CD_DESC AS cdDesc
+		,INQ_ORD AS inqOrd
+		FROM CMN_CMCD
+		WHERE 1=1
+		AND GRP_CD = 'CDK-00005'
+	</select>
+	<select id="cityChk" parameterType="String" resultType="Integer">
+		SELECT
+		COUNT(CD) AS cnt
+		FROM CMN_CMCD
+		WHERE 1=1
+		AND GRP_CD = 'CDK-00005'
+		AND CD = #{cd}
+	</select>
+
+	<insert id="cityInsert"
+		parameterType="com.rest.api.model.common.CommonCityInsert">
+		INSERT INTO CMN_CMCD
+		(
+		GRP_CD
+		,CD
+		,CD_DESC
+		,INQ_ORD
+		,LAST_CHNG_USEQ
+		)
+		VALUES
+		(
+		'CDK-00005'
+		,#{cd}
+		,#{inqOrd}
+		,#{cdDesc}
+		,'0'
+
+
+		)
+
+	</insert>
+
+	<update id="cityUpdate"
+		parameterType="com.rest.api.model.common.CommonCityUpdate">
+		UPDATE CMN_CMCD SET
+		CD_DESC = #{cdDesc}
+		,INQ_ORD = #{inqOrd}
+		WHERE 1= 1
+		AND GRP_CD = 'CDK-00005'
+		AND CD =#{cd}
+	</update>
+	<select id="langList"
+		resultType="com.rest.api.model.common.LangVO">
+		SELECT
+		clm.MENU_ID AS menuId
+		,de.MENU_NAME AS nameDe
+		,es.MENU_NAME AS nameEs
+		,jp.MENU_NAME AS nameJa
+		,kr.MENU_NAME AS nameKo
+		,us.MENU_NAME AS nameEn
+		,vn.MENU_NAME AS nameVi
+		FROM CMN_LANG_MENU clm
+		LEFT OUTER JOIN CMN_LANG_MENU de ON clm.MENU_ID = de.MENU_ID AND
+		de.LANG_CD = 'DE'
+		LEFT OUTER JOIN CMN_LANG_MENU es ON clm.MENU_ID = es.MENU_ID AND
+		es.LANG_CD = 'ES'
+		LEFT OUTER JOIN CMN_LANG_MENU jp ON clm.MENU_ID = jp.MENU_ID AND
+		jp.LANG_CD = 'JP'
+		LEFT OUTER JOIN CMN_LANG_MENU kr ON clm.MENU_ID = kr.MENU_ID AND
+		kr.LANG_CD = 'KR'
+		LEFT OUTER JOIN CMN_LANG_MENU us ON clm.MENU_ID = us.MENU_ID AND
+		us.LANG_CD = 'US'
+		LEFT OUTER JOIN CMN_LANG_MENU vn ON clm.MENU_ID = vn.MENU_ID AND
+		vn.LANG_CD = 'VN'
+		WHERE 1=1
+		AND SUBSTRING(clm.MENU_ID,1,4) = 'LANG'
+		GROUP BY clm.MENU_ID
+	</select>
+	<insert id="langInsert"
+		parameterType="com.rest.api.model.common.LangInsert">
+
+		<selectKey keyProperty="menuId" resultType="String"
+			order="BEFORE">
+			SELECT (SELECT
+			CONCAT('LANG',LPAD(IFNULL(MAX(SUBSTRING(MENU_ID,5,5)),0)+1,5,0)) FROM
+			CMN_LANG_MENU plm)
+			FROM DUAL
+		</selectKey>
+		INSERT INTO
+		CMN_LANG_MENU (
+		MENU_ID
+		,LANG_CD
+		,MENU_NAME
+		,LAST_CHNG_USEQ
+		)
+		VALUES (
+		#{menuId}
+		,#{langCd}
+		,#{menuName}
+		,#{lastChngUseq}
+		)
+	</insert>
+
+	<update id="langUpdate"
+		parameterType="com.rest.api.model.common.LangUpdate">
+		UPDATE CMN_LANG_MENU SET
+		LANG_CD = #{langCd},
+		MENU_NAME = #{menuName},
+		LAST_CHNG_USEQ = 0
+		WHERE
+		LANG_CD = #{langCd} and
+		MENU_ID = #{menuId}
+	</update>
+
+
+	<update id="newPassword"
+		parameterType="com.rest.api.model.common.CmnPswdUpdate">
+		UPDATE CMN_USER SET
+		PSWD = #{pswd}
+		WHERE 1 =1
+		AND USER_SEQ = #{userSeq}
+	</update>
+	<select id="searchSiteList"
+		resultType="com.rest.api.model.common.SearchSite$Res"
+		parameterType="com.rest.api.model.common.SearchSite$SearchDTO">
+		SELECT
+		PSC.SITE_ID , CU.USER_NAME
+		FROM PRJ_SITE_CNRT PSC
+		JOIN PRJ_SITE_USER PSU
+		ON PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD = 'ACN005'
+		LEFT JOIN PRJ_SITE_USER PSU2
+		ON PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD = 'ACN004'
+		JOIN CMN_USER CU2
+		ON (PSU2.USER_SEQ = CU2.USER_SEQ)
+		JOIN CMN_USER CU
+		ON (PSU.USER_SEQ = CU.USER_SEQ)
+		WHERE 1=1
+		AND PSC.DEL_YN = 'N'
+		AND IFNULL(PSC.MNG_STRT_DT, '') != ''
+		<if test="q != null and  q != ''">
+			AND (CU.USER_NAME LIKE CONCAT('%', #{q},'%') OR PSC.SITE_ID LIKE
+			CONCAT('%', #{q}, '%') )
+		</if>
+		AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+		<if test="siteIds != null and  siteIds != ''">
+			OR PSC.SITE_ID IN (
+			<foreach collection="siteIds" item="item" index="index"
+				separator=",">
+				'${item}'
+			</foreach>
+			)
+		</if>
+		)
+		ORDER BY SUBSTRING(PSC.SITE_ID,8,11) DESC
+	</select>
+
+	<insert id="insertOtp"
+		parameterType="com.rest.api.model.common.CmnOtp">
+		INSERT INTO
+		CMN_OTP (
+		RECEIVER,
+		VERIFICATION_CODE,
+		USER_SEQ,
+		RESET_TOKEN,
+		MSG_ID
+		)
+		VALUES (
+		#{receiver},
+		#{verificationCode},
+		#{userSeq},
+		#{resetToken},
+		#{msgId}
+		)
+	</insert>
+
+	<update id="updateOtp"
+		parameterType="com.rest.api.model.common.CmnOtp">
+		UPDATE CMN_OTP SET
+		USE_YN = #{useYn},
+		RESET_TOKEN = #{resetToken}
+		WHERE 1=1
+		AND OTP_ID = #{otpId}
+	</update>
+
+	<select id="selectOtp"
+		resultType="com.rest.api.model.common.CmnOtp">
+		SELECT OTP_ID otpId
+		, USER_SEQ userSeq
+		, USE_YN useYn
+		FROM CMN_OTP
+		WHERE 1=1
+		AND LAST_CHNG_DTTI > NOW() - INTERVAL 5 MINUTE
+		<if test="resetToken == null or  resetToken == ''">
+			AND USE_YN = 'N'
+		</if>
+		<if test="receiver != null and  receiver != ''">
+			AND RECEIVER = #{receiver}
+		</if>
+		<if test="verificationCode != null and  verificationCode != ''">
+			AND VERIFICATION_CODE = #{verificationCode}
+		</if>
+		<if test="resetToken != null and  resetToken != ''">
+			AND RESET_TOKEN = #{resetToken}
+		</if>
+
+	</select>
+
+
+
+
+	<select id="essControlList"
+		resultType="com.rest.api.model.common.EssControlVO">		
+		SELECT
+		TASK_ID AS taskId
+		,TASK_FROM AS taskFrom
+		,STATUS AS status
+		,POWER AS power
+		,LMT_U_SOC AS lmtUSoc
+		,LMT_L_SOC AS lmtLSoc
+		,GOAL AS goal
+		,CAL_TIME AS calTime
+		,IS_STOP AS isStop
+		,DATE_FORMAT(TIME_STAMP,'%Y-%m-%d %H:%i:%s') AS timeStamp
+		,SITE_ID
+		FROM CMN_CONTROL_HIST
+		WHERE 1=1
+		and (STATUS = 'charging' or STATUS = 'discharging' or STATUS = 'stop' or
+		STATUS = 'self-consumption' )
+		and TASK_FROM = 'app_control'
+		and site_id = #{siteId}
+		ORDER BY TIME_STAMP DESC
+		LIMIT 1		
+	</select>
+
+	<select id="essControlHistoryList"
+		resultType="com.rest.api.model.common.EssControlVO"
+		parameterType="com.rest.api.model.common.PageCountVO">
+		SELECT
+		TASK_ID AS taskId
+		,TASK_FROM AS taskFrom
+		,STATUS AS status
+		,POWER AS power
+		,LMT_U_SOC AS lmtUSoc
+		,LMT_L_SOC AS lmtLSoc
+		,GOAL AS goal
+		,CAL_TIME AS calTime
+		,IS_STOP AS isStop
+		,DATE_FORMAT(TIME_STAMP,'%Y-%m-%d %H:%i:%s') AS timeStamp
+		,CCH.USER_SEQ AS userSeq
+		,CU.USER_NAME AS userName
+		FROM CMN_CONTROL_HIST CCH
+		LEFT JOIN CMN_USER CU
+		ON CCH.USER_SEQ=CU.USER_SEQ
+		WHERE 1=1
+		and (STATUS = 'charging' or STATUS = 'discharging' or STATUS = 'stop' or
+		STATUS = 'self-consumption' )
+		and TASK_FROM = 'app_control'
+		and CCH.SITE_ID = #{siteId}
+		ORDER BY TIME_STAMP DESC
+		LIMIT #{pageStart}, #{pagePer};
+	</select>
+
+	<select id="essControlHistoryCnt"
+		resultType="com.rest.api.model.common.PageCountVO">
+		SELECT COUNT(1) AS totalCnt
+		FROM
+		(SELECT
+		TASK_ID AS taskId
+		,TASK_FROM AS taskFrom
+		,STATUS AS status
+		,POWER AS power
+		,LMT_U_SOC AS lmtUSoc
+		,LMT_L_SOC AS lmtLSoc
+		,GOAL AS goal
+		,CAL_TIME AS calTime
+		,IS_STOP AS isStop
+		,DATE_FORMAT(TIME_STAMP,'%Y-%m-%d %H:%i:%s') AS timeStamp
+		,CCH.USER_SEQ AS userSeq
+		,CU.USER_NAME AS userName
+		FROM CMN_CONTROL_HIST CCH
+		LEFT JOIN CMN_USER CU
+		ON CCH.USER_SEQ=CU.USER_SEQ
+		WHERE 1=1
+		and (STATUS = 'charging' or STATUS = 'discharging' or STATUS = 'stop' or
+		STATUS = 'self-consumption' )
+		and TASK_FROM = 'app_control'
+		and CCH.SITE_ID = #{siteId}
+		ORDER BY TIME_STAMP DESC) A
+
+	</select>
+
+	<update id="essControlUpdate"
+		parameterType="com.rest.api.model.common.EssControlVO">
+		UPDATE CMN_CONTROL_HIST SET
+		IS_STOP = #{isStop}
+
+		WHERE 1=1
+		and (STATUS = 'charging' or STATUS = 'discharging' or STATUS = 'stop' or
+		STATUS = 'self-consumption' )
+		and TASK_FROM = 'app_control'
+		and SITE_ID = #{siteId}
+		ORDER BY TIME_STAMP DESC
+		LIMIT 1
+	</update>
+
+	<insert id="essControlInsert"
+		parameterType="com.rest.api.model.common.EssControlVO">
+		INSERT INTO CMN_CONTROL_HIST
+		(
+		TASK_ID
+		,TASK_FROM
+		,STATUS
+		,POWER
+		,LMT_U_SOC
+		,LMT_L_SOC
+		,GOAL
+		,CAL_TIME
+		,USER_SEQ
+		,SITE_ID
+		,UUID
+		,FAC_ID
+
+		)
+		VALUES
+		(
+		#{taskId}
+		,#{taskFrom}
+		,#{status}
+		,#{power}
+		,#{lmtUSoc}
+		,#{lmtLSoc}
+		,#{goal}
+		,#{calTime}
+		,#{userSeq}
+		,#{siteId}
+		,#{uuid} 
+		,#{facId}
+
+		)
+
+	</insert>
+
+
+
+</mapper>

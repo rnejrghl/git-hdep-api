@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.rest.api.service.mm.CmnGtwyMapper">
+
+
+    <select id="gtwyGroupList" parameterType="com.rest.api.model.mm.CmnGtwyVO" resultType="com.rest.api.model.mm.CmnGtwyVO">
+        SELECT
+            GTWY_ID 		AS gtwyId 	/* 게이트웨이ID */
+            ,GTWY_NAME 	    AS gtwyName	/* 게이트웨이명 */
+        FROM CMN_GTWY
+
+    </select>
+
+    <select id="gtwyDvceList" parameterType="com.rest.api.model.mm.CmnGtwyDvceVO" resultType="com.rest.api.model.mm.CmnGtwyDvceVO">
+        SELECT
+            CGD.GTWY_ID 			AS gtwyId 		/* 게이트웨이ID */
+            ,CGD.DVCE_ID 			AS dvceId 		/* 디바이스ID */
+
+            , CD.EQMT_GUBN_CD 	    AS eqmtGubnCd	/* 설비구분코드 (인버터/PCS/배터리) */
+            , CD.PNT_ADDR 			AS pntAddr		/* 포인트주소 */
+            , CD.PNT_ADDR_NAME 	    AS pntAddrName	/* 포인트주소명 */
+            , CD.PNT_ADDR_DESC 	    AS pntAddrDesc  /* 포인트주소설명 */
+            , CD.DATA_TYP 			AS dataTyp		/* 데이터형식 */
+            , CD.ITEM_GUBN 		    AS itemGubn		/* 아이템구분 */
+            , CD.SCLE_FCTR 		    AS scleFctr		/* 스케일팩터 (NUMBER만 넣나?) */
+            , CD.UNIT_CD 			AS unitCd		/* 단위코드 (GRP_CD : CDK-00018) */
+            , CD.SYS_TAG 			AS sysTag		/* 시스템태그 */
+
+            , (SELECT COUNT(CDC.DVCE_ID) CNT FROM CMN_DVCE_CALC CDC WHERE 1=1 AND CDC.DVCE_ID = CD.DVCE_ID ) CNT	/* 계산식 갯수 */
+
+            ,CGD.DATA_RCRD_YN 	    AS dataRcrdYn 	/* 데이터기록여부 */
+            ,CGD.ADDR_1 			AS addr1 		/* 주소1 */
+            ,CGD.ADDR_2 			AS addr2 		/* 주소2 */
+        FROM CMN_GTWY_DVCE CGD
+            JOIN CMN_DVCE CD
+        WHERE 1=1
+        AND CGD.DVCE_ID = CD.DVCE_ID
+        AND CGD.GTWY_ID = #{gtwyId}
+
+        <if test="pntAddr != null and  pntAddr != ''">
+            AND CD.PNT_ADDR 		= #{pntAddr}			/* 포인트주소 */
+        </if>
+        <if test="pntAddrName != null and  pntAddrName != ''">
+            AND CD.PNT_ADDR_NAME    = #{pntAddrName}		/* 포인트주소명 */
+        </if>
+        <if test="sysTag != null and  sysTag != ''">
+            AND CD.SYS_TAG 		    = #{sysTag}				/* 시스템태그 */
+        </if>
+
+    </select>
+    <insert id="gtwyGrpInsert" parameterType="com.rest.api.model.mm.CmnGtwyInsert" >
+        <selectKey keyProperty="gtwyId" resultType="String" order="BEFORE">
+            SELECT IFNULL(MAX(cg.GTWY_ID*1),0)+1 FROM CMN_GTWY cg
+        </selectKey>
+        INSERT INTO CMN_GTWY
+        (
+             GTWY_ID  			/*게이트웨이ID */
+            ,GTWY_NAME 			/* 디바이스ID */
+            ,LAST_CHNG_USEQ 	/* 최종작업자번호 */
+        )
+        VALUES
+        (
+           	#{gtwyId}	/* 게이트웨이ID */
+            ,#{gtwyName} 			/* 게이트웨이명 */
+            ,#{userSeq} 		/* 최종작업자번호 */
+        )
+    </insert>
+
+    <insert id="gtwyGrpDvceInsert" parameterType="com.rest.api.model.mm.CmnGtwyInsert" >
+      INSERT INTO CMN_GTWY_DVCE
+      ( GTWY_ID
+      , DVCE_ID
+      , LAST_CHNG_USEQ
+      , DATA_RCRD_YN
+      ) SELECT #{gtwyId}, DVCE_ID, #{userSeq},'N' FROM CMN_DVCE WHERE EQMT_GUBN_CD = #{eqmtGubnCd};
+    </insert>
+
+    <insert id="gtwyDvceInsert" parameterType="com.rest.api.model.mm.CmnGtwyDvceInsert" >
+        INSERT INTO CMN_GTWY_DVCE
+        (
+            GTWY_ID  			/*게이트웨이ID */
+            ,DVCE_ID 			/* 디바이스ID */
+            ,LAST_CHNG_USEQ 	/* 최종작업자번호 */
+            ,DATA_RCRD_YN       /* 데이터기록여부 */
+        )
+        VALUES
+        (
+            #{gtwyId}			/* 게이트웨이ID */
+            ,#{dvceId} 			/* 디바이스ID */
+            ,#{userSeq} 		/* 최종작업자번호 */
+            ,'N'                /* 데이터기록여부 */
+        )
+    </insert>
+
+    <update id="gtwyDvceUpdate" parameterType="com.rest.api.model.mm.CmnGtwyDvceUpdate" >
+        UPDATE CMN_GTWY_DVCE
+        SET DATA_RCRD_YN 	= #{dataRcrdYn} 	/* 데이터기록여부 */
+            ,ADDR_1 		= #{addr1}			/* 주소1 */
+            ,ADDR_2 		= #{addr2} 			/* 주소2 */
+            ,LAST_CHNG_USEQ 	= #{userSeq}	/* 최종작업자번호 */
+        WHERE 1=1
+        AND GTWY_ID = #{gtwyId}			/* 게이트웨이ID */
+        AND DVCE_ID = #{dvceId}         /* 디바이스ID */
+
+    </update>
+
+    <select id="pntMapList" parameterType="com.rest.api.model.mm.CmnGtwyDvceVO" resultType="com.rest.api.model.mm.CmnDvceVO">
+        SELECT CD.DVCE_ID 			AS dvceId		/* 디바이스ID */
+        FROM CMN_DVCE CD
+        WHERE 1=1
+        AND EQMT_GUBN_CD = #{eqmtGubnCd}
+    </select>
+
+<!--    <delete id="gtwyDvceDelete" parameterType="com.rest.api.model.mm.CmnGtwyDvceVO">-->
+<!--        DELETE FROM CMN_GTWY_DVCE-->
+<!--        WHERE 1=1-->
+<!--        AND GTWY_ID = 	#{gtwyId}			/* 게이트웨이ID */-->
+<!--        AND DVCE_ID = #{dvceId} 			/* 디바이스ID */-->
+
+<!--    </delete>-->
+
+
+</mapper>

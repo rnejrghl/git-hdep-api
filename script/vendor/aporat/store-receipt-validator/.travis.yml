@@ -1,0 +1,23 @@
+language: php
+
+php:
+  - 7.1
+  - 7.2
+  - master
+
+matrix:
+  allow_failures:
+    - php: master
+  fast_finish: true
+
+before_script:
+  - composer self-update
+  - composer update
+
+script:
+  - mkdir -p build/logs/coverage
+  - php vendor/bin/phpunit -c phpunit.xml.dist
+
+after_script:
+- wget https://scrutinizer-ci.com/ocular.phar
+- php ocular.phar code-coverage:upload --format=php-clover build/logs/clover.xml

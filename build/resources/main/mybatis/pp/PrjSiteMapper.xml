@@ -1,0 +1,1414 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.rest.api.service.pp.PrjSiteMapper">
+
+    <select id="prjSiteList" parameterType="com.rest.api.model.pp.PrjSiteVO" resultType="com.rest.api.model.pp.PrjSitesVO">
+        SELECT
+        PSC.SITE_ID             AS siteId       /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        , PSU.USER_SEQ          AS userSeq      /* 사용자번호 */
+        , CU.USER_ID            AS userId       /* 사용자ID */
+        , CU.USER_NAME          AS userName     /* 사용자명 */
+        , PSC.REGN_GUBN         AS regnGubn     /* 지역구분*/
+        , PSC.RESC_GUBN         AS rescGubn     /* 지역구분*/
+        , PSC.PV_INST_CAPA      AS pvInstCapa   /* PV설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+        , PSC.ESS_INST_CAPA     AS essInstCapa  /* ESS설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+
+        , CASE WHEN (SELECT COUNT(GOAL_DT) FROM PRJ_SITE_GOAL PG WHERE 1=1 AND PSC.SITE_ID = PG.SITE_ID) > 0 THEN 'Y'
+         ELSE 'N'
+         END AS goalYnNm /* 목표등록여부명 */
+        , PSU2.USER_SEQ         AS instPsnSeq   /* 설치담당자번호 */
+        , CU2.USER_ID           AS instPsnId    /* 설치담당자ID */
+        , CU2.USER_NAME         AS instPsnName  /* 설치담당자 */
+        , CU2.TEL_NO            AS instPsnTelNo /* 설치담당자전화번호 */
+        , PSC.CNRT_STRT_DT      AS cnrtStrtDt   /* 계약시작일*/
+        , PSP.WKPL_CMPL_DT      AS wkplCmplDt   /* 작업계획수립완료 */
+        , PSC.EXPN_DT           AS expnDt       /* 사업비승인일 */
+
+        ,PSG1.WORK_DUDT         AS applDudt     /* 신청예정일 */
+        ,PSG2.WORK_DUDT         AS apprDudt     /* 승인예정일 */
+        ,PSG3.WORK_DUDT         AS mpDudt       /* 자재구매예정일 */
+        ,PSG4.WORK_DUDT         AS insDudt      /* 설치예정일 */
+
+        ,PSG1.WORK_CMDT         AS applCmdt     /* 신청완료일 */
+        ,PSG2.WORK_CMDT         AS apprCmdt     /* 승인완료일 */
+        ,PSG3.WORK_CMDT         AS mpCmdt       /* 자재구매완료일 */
+        ,PSG4.WORK_CMDT         AS insCmdt      /* 설치완료일 */
+
+        , PSC.CNRT_END_DT       AS cnrtEndDt    /* 계약종료일 */
+        , PSI.CHK_CMPL_DT       AS chkCmplDt    /* 점검일 */
+        , PSC.MNG_STRT_DT       AS mngStrtDt    /* 운영시작일 */
+        , PSC.TERM_DT			AS termDt		/* 해지일 */
+        , PSC.LATD              AS latd         /* 위도 */
+        , PSC.LGTD              AS lgtd         /* 경도 */
+        , PSC.ADDR              as addr         /* 주소 */
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        JOIN PRJ_SITE_USER PSU2
+        ON (PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD ='ACN003'
+        )
+        JOIN PRJ_SITE_PLAN PSP
+        ON (PSC.SITE_ID = PSP.SITE_ID
+        <if test="(wkplStrtDt != null and  wkplStrtDt != '') and (wkplEndDt != null and  wkplEndDt != '')">
+            AND PSP.WKPL_CMPL_DT BETWEEN #{wkplStrtDt} AND #{wkplEndDt} /* 작업계획수립완료 */
+        </if>
+        )
+        JOIN PRJ_SITE_GRID PSG1
+        ON (PSC.SITE_ID = PSG1.SITE_ID
+            AND PSG1.WORK_GUBN = '1' /* 만약 그리드신청 코드가 1이라는 가정 */
+        <if test="(applStrtCmdt != null and  applStrtCmdt != '') and (applEndCmdt != null and  applEndCmdt != '')">
+            AND PSG1.WORK_CMDT BETWEEN #{applStrtCmdt} AND #{applEndCmdt} /* 신청완료일 */
+        </if>
+        )
+        JOIN PRJ_SITE_GRID PSG2
+        ON (PSC.SITE_ID = PSG2.SITE_ID
+            AND PSG2.WORK_GUBN = '2' /* 만약 그리드승인 코드가 2이라는 가정 */
+        <if test="(apprStrtCmdt != null and  apprStrtCmdt != '') and (apprEndCmdt != null and  apprEndCmdt != '')">
+            AND PSG2.WORK_CMDT BETWEEN #{apprStrtCmdt} AND #{apprEndCmdt} /* 승인완료일 */
+        </if>
+        )
+        JOIN PRJ_SITE_GRID PSG3
+        ON (PSC.SITE_ID = PSG3.SITE_ID
+            AND PSG3.WORK_GUBN = '3' /* 만약 자재구매 코드가 3이라는 가정 */
+        <if test="(mpStrtCmdt != null and  mpStrtCmdt != '') and (mpEndCmdt != null and  mpEndCmdt != '')">
+            AND PSG3.WORK_CMDT BETWEEN #{mpStrtCmdt} AND #{mpEndCmdt} /* 자재구매완료일 */
+        </if>
+        )
+        JOIN PRJ_SITE_GRID PSG4
+        ON (PSC.SITE_ID = PSG4.SITE_ID
+            AND PSG4.WORK_GUBN = '4' /* 만약 설치 코드가 4이라는 가정 */
+        <if test="(insStrtCmdt != null and  insStrtCmdt != '') and (insEndCmdt != null and  insEndCmdt != '')">
+            AND PSG4.WORK_CMDT BETWEEN #{insStrtCmdt} AND #{insEndCmdt} /* 설치완료일 */
+        </if>
+        )
+        LEFT JOIN CMN_USER CU
+        ON (PSU.USER_SEQ = CU.USER_SEQ)
+        LEFT JOIN CMN_USER CU2
+        ON (PSU2.USER_SEQ = CU2.USER_SEQ)
+        LEFT JOIN PRJ_SITE_INSP PSI
+        ON (PSC.SITE_ID = PSI.SITE_ID)
+
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        <if test="userName != null and  userName != ''">
+            AND CU.USER_NAME LIKE CONCAT('%',#{userName},'%')   /* 사용자명 ,ID */
+        </if>
+        <if test="instPsnName != null and  instPsnName != ''">
+            AND CU2.USER_NAME LIKE CONCAT('%',#{instPsnName},'%')   /* 설치담당자명 */
+        </if>
+
+        <if test="siteId != null and  siteId != ''">
+        AND PSC.SITE_ID = #{siteId}
+        </if>
+
+        <if test="regnGubn != null and  regnGubn != ''">
+        AND PSC.REGN_GUBN = #{regnGubn} /* 지역구분*/
+        </if>
+
+        <if test="(cnrtStrtSrcStrtDt != null and  cnrtStrtSrcStrtDt != '') and (cnrtStrtSrcEndDt != null and  cnrtStrtSrcEndDt != '')">
+        AND PSC.CNRT_STRT_DT BETWEEN #{cnrtStrtSrcStrtDt} AND #{cnrtStrtSrcEndDt}  /* 계약시작일*/
+        </if>
+
+        <if test="(expnStrtDt != null and  expnStrtDt != '') and (expnEndDt != null and  expnEndDt != '')">
+        AND PSC.EXPN_DT BETWEEN #{expnStrtDt} AND #{expnEndDt} /* 사업비승인일 */
+        </if>
+
+        <if test="(cnrtEndSrcStrtDt != null and  cnrtEndSrcStrtDt != '') and (cnrtEndSrcEndDt != null and  cnrtEndSrcEndDt != '')">
+        AND PSC.CNRT_END_DT BETWEEN #{cnrtEndSrcStrtDt} AND #{cnrtEndSrcEndDt} /* 계약종료일 */
+        </if>
+
+        <if test="(mngSrcStrtDt != null and  mngSrcStrtDt != '') and (mngSrcEndDt != null and  mngSrcEndDt != '')">
+            AND PSC.MNG_STRT_DT BETWEEN #{mngSrcStrtDt} AND #{mngSrcEndDt} /* 운영시작일 */
+        </if>
+
+        <if test="(chkCmplSrcStrtDt != null and  chkCmplSrcStrtDt != '') and (chkCmplSrcEndDt != null and  chkCmplSrcEndDt != '')">
+            AND PSI.CHK_CMPL_DT BETWEEN #{chkCmplSrcStrtDt} AND #{chkCmplSrcEndDt} /* 점검일 */
+        </if>
+
+        <if test='(applCmdtYN != null and applCmdtYN != "" and applCmdtYN == "Y")'>
+            AND ifnull(PSG1.WORK_CMDT, '') = ''                                     /* 신청완료일이 없는 데이터 */
+        </if>
+
+        <if test='(apprCmdtYN != null and apprCmdtYN != "" and apprCmdtYN == "Y")'>
+            AND ifnull(PSG2.WORK_CMDT, '') = ''                                     /* 승인완료일이 없는  데이터 */
+        </if>
+
+        <if test='(mpCmdtYN != null and mpCmdtYN != "" and mpCmdtYN == "Y")'>
+            AND ifnull(PSG3.WORK_CMDT, '') = ''                                     /* 자재구매 완료일이 없는  데이터 */
+        </if>
+
+        <if test='(insCmdtYN != null and insCmdtYN != "" and insCmdtYN == "Y")'>
+            AND ifnull(PSG4.WORK_CMDT, '') = ''                                     /* 설치완료일이 없는 데이터 */
+        </if>
+
+        <if test='(wkplCmplDtYN != null and wkplCmplDtYN != "" and wkplCmplDtYN == "Y")'>
+            AND ifnull(PSP.WKPL_CMPL_DT, '') = ''                                      /* 계획수립일 미완료 데이터 노출 */
+        </if>
+
+        <if test='(expnDtYN != null and expnDtYN != "" and expnDtYN == "Y")'>
+            AND ifnull(PSC.EXPN_DT, '') = ''                                           /* 사업비승인 미완료 데이터 노출 */
+        </if>
+
+        <if test='(chkCmplDtYN != null and chkCmplDtYN != "" and chkCmplDtYN == "Y")'>
+            AND ifnull(PSI.CHK_CMPL_DT, '') = ''                                           /*  Inspecition 미완료 데이터  */
+        </if>
+
+        <if test='(mngStrtDtYN != null and mngStrtDtYN != "" and mngStrtDtYN == "Y")'>
+            AND ifnull(PSC.MNG_STRT_DT, '') = ''                                       /* 운영 미완료 데이터 노출 */
+        </if>
+
+        <if test='(termDtYN != null and termDtYN != "" and termDtYN == "Y")'>
+            AND ifnull(PSC.TERM_DT, '') = ''                                           /* 종료 미완료 데이터 노출 */
+        </if>
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        ORDER BY SUBSTRING(PSC.SITE_ID,8,11) DESC
+        <if test="pagePer != null and pagePer > 0">
+            LIMIT #{pageStart}, #{pagePer}
+        </if>
+    </select>
+    <select id="prjSitePageCnt" parameterType="com.rest.api.model.pp.PrjSiteVO" resultType="com.rest.api.model.pp.PrjSiteCntVO">
+        SELECT
+            COUNT(*) AS TotalCnt
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        JOIN PRJ_SITE_USER PSU2
+        ON (PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD ='ACN003'
+        )
+        JOIN PRJ_SITE_PLAN PSP
+        ON (PSC.SITE_ID = PSP.SITE_ID
+        <if test="(wkplStrtDt != null and  wkplStrtDt != '') and (wkplEndDt != null and  wkplEndDt != '')">
+            AND PSP.WKPL_CMPL_DT BETWEEN #{wkplStrtDt} AND #{wkplEndDt} /* 작업계획수립완료 */
+        </if>
+        )
+        JOIN PRJ_SITE_GRID PSG1
+        ON (PSC.SITE_ID = PSG1.SITE_ID
+        AND PSG1.WORK_GUBN = '1' /* 만약 그리드신청 코드가 1이라는 가정 */
+        <if test="(applStrtCmdt != null and  applStrtCmdt != '') and (applEndCmdt != null and  applEndCmdt != '')">
+            AND PSG1.WORK_CMDT BETWEEN #{applStrtCmdt} AND #{applEndCmdt} /* 신청완료일 */
+        </if>
+        )
+        JOIN PRJ_SITE_GRID PSG2
+        ON (PSC.SITE_ID = PSG2.SITE_ID
+        AND PSG2.WORK_GUBN = '2' /* 만약 그리드승인 코드가 2이라는 가정 */
+        <if test="(apprStrtCmdt != null and  apprStrtCmdt != '') and (apprEndCmdt != null and  apprEndCmdt != '')">
+            AND PSG2.WORK_CMDT BETWEEN #{apprStrtCmdt} AND #{apprEndCmdt} /* 승인완료일 */
+        </if>
+        )
+        JOIN PRJ_SITE_GRID PSG3
+        ON (PSC.SITE_ID = PSG3.SITE_ID
+        AND PSG3.WORK_GUBN = '3' /* 만약 자재구매 코드가 3이라는 가정 */
+        <if test="(mpStrtCmdt != null and  mpStrtCmdt != '') and (mpEndCmdt != null and  mpEndCmdt != '')">
+            AND PSG3.WORK_CMDT BETWEEN #{mpStrtCmdt} AND #{mpEndCmdt} /* 자재구매완료일 */
+        </if>
+        )
+        JOIN PRJ_SITE_GRID PSG4
+        ON (PSC.SITE_ID = PSG4.SITE_ID
+        AND PSG4.WORK_GUBN = '4' /* 만약 설치 코드가 4이라는 가정 */
+        <if test="(insStrtCmdt != null and  insStrtCmdt != '') and (insEndCmdt != null and  insEndCmdt != '')">
+            AND PSG4.WORK_CMDT BETWEEN #{insStrtCmdt} AND #{insEndCmdt} /* 설치완료일 */
+        </if>
+        )
+        LEFT JOIN CMN_USER CU
+        ON (PSU.USER_SEQ = CU.USER_SEQ)
+        LEFT JOIN CMN_USER CU2
+        ON (PSU2.USER_SEQ = CU2.USER_SEQ)
+        LEFT JOIN PRJ_SITE_INSP PSI
+        ON (PSC.SITE_ID = PSI.SITE_ID)
+
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        <if test="userName != null and  userName != ''">
+            AND CU.USER_NAME LIKE CONCAT('%',#{userName},'%')   /* 사용자명 ,ID */
+        </if>
+        <if test="instPsnName != null and  instPsnName != ''">
+            AND CU2.USER_NAME LIKE CONCAT('%',#{instPsnName},'%')   /* 설치담당자명 */
+        </if>
+
+        <if test="siteId != null and  siteId != ''">
+            AND PSC.SITE_ID = #{siteId}
+        </if>
+
+        <if test="regnGubn != null and  regnGubn != ''">
+            AND PSC.REGN_GUBN = #{regnGubn} /* 지역구분*/
+        </if>
+
+        <if test="(cnrtStrtSrcStrtDt != null and  cnrtStrtSrcStrtDt != '') and (cnrtStrtSrcEndDt != null and  cnrtStrtSrcEndDt != '')">
+            AND PSC.CNRT_STRT_DT BETWEEN #{cnrtStrtSrcStrtDt} AND #{cnrtStrtSrcEndDt}  /* 계약시작일*/
+        </if>
+
+        <if test="(expnStrtDt != null and  expnStrtDt != '') and (expnEndDt != null and  expnEndDt != '')">
+            AND PSC.EXPN_DT BETWEEN #{expnStrtDt} AND #{expnEndDt} /* 사업비승인일 */
+        </if>
+
+        <if test="(cnrtEndSrcStrtDt != null and  cnrtEndSrcStrtDt != '') and (cnrtEndSrcEndDt != null and  cnrtEndSrcEndDt != '')">
+            AND PSC.CNRT_END_DT BETWEEN #{cnrtEndSrcStrtDt} AND #{cnrtEndSrcEndDt} /* 계약종료일 */
+        </if>
+
+        <if test="(mngSrcStrtDt != null and  mngSrcStrtDt != '') and (mngSrcEndDt != null and  mngSrcEndDt != '')">
+            AND PSC.MNG_STRT_DT BETWEEN #{mngSrcStrtDt} AND #{mngSrcEndDt} /* 운영시작일 */
+        </if>
+
+        <if test="(chkCmplSrcStrtDt != null and  chkCmplSrcStrtDt != '') and (chkCmplSrcEndDt != null and  chkCmplSrcEndDt != '')">
+            AND PSI.CHK_CMPL_DT BETWEEN #{chkCmplSrcStrtDt} AND #{chkCmplSrcEndDt} /* 점검일 */
+        </if>
+
+        <if test='(applCmdtYN != null and applCmdtYN != "" and applCmdtYN == "Y")'>
+            AND ifnull(PSG1.WORK_CMDT, '') = ''                                     /* 신청완료일이 없는 데이터 */
+        </if>
+
+        <if test='(apprCmdtYN != null and apprCmdtYN != "" and apprCmdtYN == "Y")'>
+            AND ifnull(PSG2.WORK_CMDT, '') = ''                                     /* 승인완료일이 없는  데이터 */
+        </if>
+
+        <if test='(mpCmdtYN != null and mpCmdtYN != "" and mpCmdtYN == "Y")'>
+            AND ifnull(PSG3.WORK_CMDT, '') = ''                                     /* 자재구매 완료일이 없는  데이터 */
+        </if>
+
+        <if test='(insCmdtYN != null and insCmdtYN != "" and insCmdtYN == "Y")'>
+            AND ifnull(PSG4.WORK_CMDT, '') = ''                                     /* 설치완료일이 없는 데이터 */
+        </if>
+
+        <if test='(wkplCmplDtYN != null and wkplCmplDtYN != "" and wkplCmplDtYN == "Y")'>
+            AND ifnull(PSP.WKPL_CMPL_DT, '') = ''                                      /* 계획수립일 미완료 데이터 노출 */
+        </if>
+
+        <if test='(expnDtYN != null and expnDtYN != "" and expnDtYN == "Y")'>
+            AND ifnull(PSC.EXPN_DT, '') = ''                                           /* 사업비승인 미완료 데이터 노출 */
+        </if>
+
+        <if test='(chkCmplDtYN != null and chkCmplDtYN != "" and chkCmplDtYN == "Y")'>
+            AND ifnull(PSI.CHK_CMPL_DT, '') = ''                                           /*  Inspecition 미완료 데이터  */
+        </if>
+
+        <if test='(mngStrtDtYN != null and mngStrtDtYN != "" and mngStrtDtYN == "Y")'>
+            AND ifnull(PSC.MNG_STRT_DT, '') = ''                                       /* 운영 미완료 데이터 노출 */
+        </if>
+
+        <if test='(termDtYN != null and termDtYN != "" and termDtYN == "Y")'>
+            AND ifnull(PSC.TERM_DT, '') = ''                                           /* 종료 미완료 데이터 노출 */
+        </if>
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+    </select>
+
+    <select id="prjSiteListExcel" parameterType="com.rest.api.model.pp.PrjSiteVO" resultType="com.rest.api.model.pp.PrjSitesVO">
+        SELECT
+        PSC.SITE_ID             AS siteId       /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        , PSU.USER_SEQ          AS userSeq      /* 사용자번호 */
+        , CU.USER_ID            AS userId       /* 사용자ID */
+        , CU.USER_NAME          AS userName     /* 사용자명 */
+        , CC.CD_NAME            AS regnGubn     /* 지역구분*/
+        , CASE WHEN (PSC.RESC_GUBN='A') THEN 'PV' 
+        ELSE 'PV+ESS' 
+        END AS rescGubn   /*자원구분*/
+        , PSC.PV_INST_CAPA      AS pvInstCapa   /* PV설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+        , PSC.ESS_INST_CAPA     AS essInstCapa  /* ESS설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+
+        , CASE WHEN (SELECT COUNT(GOAL_DT) FROM PRJ_SITE_GOAL PG WHERE 1=1 AND PSC.SITE_ID = PG.SITE_ID) > 0 THEN 'Y'
+        ELSE 'N'
+        END AS goalYnNm /* 목표등록여부명 */
+        , PSU2.USER_SEQ         AS instPsnSeq   /* 설치담당자번호 */
+        , CU2.USER_ID           AS instPsnId    /* 설치담당자ID */
+        , CU2.USER_NAME         AS instPsnName  /* 설치담당자 */
+        , CU2.TEL_NO            AS instPsnTelNo /* 설치담당자전화번호 */
+        , PSC.CNRT_STRT_DT      AS cnrtStrtDt   /* 계약시작일*/
+        , PSP.WKPL_CMPL_DT      AS wkplCmplDt   /* 작업계획수립완료 */
+        , PSC.EXPN_DT           AS expnDt       /* 사업비승인일 */
+        <![CDATA[
+        ,CASE WHEN PSG1.WORK_CMDT IS NULL AND DATE_FORMAT(NOW(),'%Y%m%d') = PSG1.WORK_DUDT THEN 'D-0'
+        WHEN PSG1.WORK_CMDT IS NULL AND DATE_FORMAT(NOW(),'%Y%m%d') > PSG1.WORK_DUDT THEN CONCAT('D+',DATEDIFF(DATE_FORMAT(NOW(),'%Y%m%d'),PSG1.WORK_DUDT))
+        WHEN PSG1.WORK_CMDT IS NULL AND DATE_FORMAT(NOW(),'%Y%m%d') < PSG1.WORK_DUDT THEN CONCAT('D',DATEDIFF(DATE_FORMAT(NOW(),'%Y%m%d'),PSG1.WORK_DUDT))
+        ELSE PSG1.WORK_CMDT END AS applCmdt     /* 신청완료일 */
+
+        ,CASE WHEN PSG2.WORK_CMDT IS NULL AND DATE_FORMAT(NOW(),'%Y%m%d') = PSG2.WORK_DUDT THEN 'D-0'
+        WHEN PSG2.WORK_CMDT IS NULL AND DATE_FORMAT(NOW(),'%Y%m%d') > PSG2.WORK_DUDT THEN CONCAT('D+',DATEDIFF(DATE_FORMAT(NOW(),'%Y%m%d'),PSG2.WORK_DUDT))
+        WHEN PSG2.WORK_CMDT IS NULL AND DATE_FORMAT(NOW(),'%Y%m%d') < PSG2.WORK_DUDT THEN CONCAT('D',DATEDIFF(DATE_FORMAT(NOW(),'%Y%m%d'),PSG2.WORK_DUDT))
+        ELSE PSG2.WORK_CMDT END  AS apprCmdt     /* 승인완료일 */
+
+        ,CASE WHEN PSG3.WORK_CMDT IS NULL AND DATE_FORMAT(NOW(),'%Y%m%d') = PSG3.WORK_DUDT THEN 'D-0'
+        WHEN PSG3.WORK_CMDT IS NULL AND DATE_FORMAT(NOW(),'%Y%m%d') > PSG3.WORK_DUDT THEN CONCAT('D+',DATEDIFF(DATE_FORMAT(NOW(),'%Y%m%d'),PSG3.WORK_DUDT))
+        WHEN PSG3.WORK_CMDT IS NULL AND DATE_FORMAT(NOW(),'%Y%m%d') < PSG3.WORK_DUDT THEN CONCAT('D',DATEDIFF(DATE_FORMAT(NOW(),'%Y%m%d'),PSG3.WORK_DUDT))
+        ELSE PSG3.WORK_CMDT END AS mpCmdt       /* 자재구매완료일 */
+
+        ,CASE WHEN PSG4.WORK_CMDT IS NULL AND DATE_FORMAT(NOW(),'%Y%m%d') = PSG4.WORK_DUDT THEN 'D-0'
+        WHEN PSG4.WORK_CMDT IS NULL AND DATE_FORMAT(NOW(),'%Y%m%d') > PSG4.WORK_DUDT THEN CONCAT('D+',DATEDIFF(DATE_FORMAT(NOW(),'%Y%m%d'),PSG4.WORK_DUDT))
+        WHEN PSG4.WORK_CMDT IS NULL AND DATE_FORMAT(NOW(),'%Y%m%d') < PSG4.WORK_DUDT THEN CONCAT('D',DATEDIFF(DATE_FORMAT(NOW(),'%Y%m%d'),PSG4.WORK_DUDT))
+        ELSE PSG4.WORK_CMDT END AS insCmdt      /* 설치완료일 */
+        ]]>
+        , PSC.CNRT_END_DT       AS cnrtEndDt    /* 계약종료일 */
+        , PSI.CHK_CMPL_DT       AS chkCmplDt    /* 점검일 */
+        , PSC.MNG_STRT_DT       AS mngStrtDt    /* 운영시작일 */
+        , PSC.TERM_DT			AS termDt		/* 해지일 */
+        , PSC.LATD              AS latd       /* 위도 */
+        , PSC.LGTD              AS lgtd       /* 경도 */
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        JOIN PRJ_SITE_USER PSU2
+        ON (PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD ='ACN003'
+        )
+        LEFT OUTER JOIN CMN_CMCD CC ON PSC.REGN_GUBN = CC.CD AND CC.GRP_CD = 'CDK-00005'
+        JOIN PRJ_SITE_PLAN PSP
+        ON (PSC.SITE_ID = PSP.SITE_ID
+        <if test="(wkplStrtDt != null and  wkplStrtDt != '') and (wkplEndDt != null and  wkplEndDt != '')">
+            AND PSP.WKPL_CMPL_DT BETWEEN #{wkplStrtDt} AND #{wkplEndDt} /* 작업계획수립완료 */
+        </if>
+        )
+        JOIN PRJ_SITE_GRID PSG1
+        ON (PSC.SITE_ID = PSG1.SITE_ID
+        AND PSG1.WORK_GUBN = '1' /* 만약 그리드신청 코드가 1이라는 가정 */
+        <if test="(applStrtCmdt != null and  applStrtCmdt != '') and (applEndCmdt != null and  applEndCmdt != '')">
+            AND PSG1.WORK_CMDT BETWEEN #{applStrtCmdt} AND #{applEndCmdt} /* 신청완료일 */
+        </if>
+        )
+        JOIN PRJ_SITE_GRID PSG2
+        ON (PSC.SITE_ID = PSG2.SITE_ID
+        AND PSG2.WORK_GUBN = '2' /* 만약 그리드승인 코드가 2이라는 가정 */
+        <if test="(apprStrtCmdt != null and  apprStrtCmdt != '') and (apprEndCmdt != null and  apprEndCmdt != '')">
+            AND PSG2.WORK_CMDT BETWEEN #{apprStrtCmdt} AND #{apprEndCmdt} /* 승인완료일 */
+        </if>
+        )
+        JOIN PRJ_SITE_GRID PSG3
+        ON (PSC.SITE_ID = PSG3.SITE_ID
+        AND PSG3.WORK_GUBN = '3' /* 만약 자재구매 코드가 3이라는 가정 */
+        <if test="(mpStrtCmdt != null and  mpStrtCmdt != '') and (mpEndCmdt != null and  mpEndCmdt != '')">
+            AND PSG3.WORK_CMDT BETWEEN #{mpStrtCmdt} AND #{mpEndCmdt} /* 자재구매완료일 */
+        </if>
+        )
+        JOIN PRJ_SITE_GRID PSG4
+        ON (PSC.SITE_ID = PSG4.SITE_ID
+        AND PSG4.WORK_GUBN = '4' /* 만약 설치 코드가 4이라는 가정 */
+        <if test="(insStrtCmdt != null and  insStrtCmdt != '') and (insEndCmdt != null and  insEndCmdt != '')">
+            AND PSG4.WORK_CMDT BETWEEN #{insStrtCmdt} AND #{insEndCmdt} /* 설치완료일 */
+        </if>
+        )
+        LEFT JOIN CMN_USER CU
+        ON (PSU.USER_SEQ = CU.USER_SEQ)
+        LEFT JOIN CMN_USER CU2
+        ON (PSU2.USER_SEQ = CU2.USER_SEQ)
+        LEFT JOIN PRJ_SITE_INSP PSI
+        ON (PSC.SITE_ID = PSI.SITE_ID)
+
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        <if test="instPsnName != null and  instPsnName != ''">
+            AND CU2.USER_NAME LIKE CONCAT('%',#{instPsnName},'%')   /* 설치담당자명 */
+        </if>
+        <if test="userName != null and  userName != ''">
+            AND CU.USER_NAME LIKE CONCAT('%',#{userName},'%')   /* 사용자명 ,ID */
+        </if>
+        <if test="siteId != null and  siteId != ''">
+            AND PSC.SITE_ID = #{siteId}
+        </if>
+
+        <if test="regnGubn != null and  regnGubn != ''">
+            AND PSC.REGN_GUBN = #{regnGubn} /* 지역구분*/
+        </if>
+
+        <if test="(cnrtStrtSrcStrtDt != null and  cnrtStrtSrcStrtDt != '') and (cnrtStrtSrcEndDt != null and  cnrtStrtSrcEndDt != '')">
+            AND PSC.CNRT_STRT_DT BETWEEN #{cnrtStrtSrcStrtDt} AND #{cnrtStrtSrcEndDt}  /* 계약시작일*/
+        </if>
+
+        <if test="(expnStrtDt != null and  expnStrtDt != '') and (expnEndDt != null and  expnEndDt != '')">
+            AND PSC.EXPN_DT BETWEEN #{expnStrtDt} AND #{expnEndDt} /* 사업비승인일 */
+        </if>
+
+        <if test="(cnrtEndSrcStrtDt != null and  cnrtEndSrcStrtDt != '') and (cnrtEndSrcEndDt != null and  cnrtEndSrcEndDt != '')">
+            AND PSC.CNRT_END_DT BETWEEN #{cnrtEndSrcStrtDt} AND #{cnrtEndSrcEndDt} /* 계약종료일 */
+        </if>
+
+        <if test="(mngSrcStrtDt != null and  mngSrcStrtDt != '') and (mngSrcEndDt != null and  mngSrcEndDt != '')">
+            AND PSC.MNG_STRT_DT BETWEEN #{mngSrcStrtDt} AND #{mngSrcEndDt} /* 운영시작일 */
+        </if>
+
+        <if test="(chkCmplSrcStrtDt != null and  chkCmplSrcStrtDt != '') and (chkCmplSrcEndDt != null and  chkCmplSrcEndDt != '')">
+            AND PSI.CHK_CMPL_DT BETWEEN #{chkCmplSrcStrtDt} AND #{chkCmplSrcEndDt} /* 점검일 */
+        </if>
+
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        ORDER BY SUBSTRING(PSC.SITE_ID,8,11) DESC
+
+    </select>
+
+    <select id="prjSiteCnt" parameterType="com.rest.api.model.pp.PrjSiteVO"  resultType="com.rest.api.model.pp.PrjSiteCntVO">
+
+        SELECT COUNT(*) AS  totCnt,
+        sum(if (ifnull(PSC.CNRT_STRT_DT, '') != '' and ifnull(PSP.WKPL_CMPL_DT, '') = '' and ifnull(PSC.EXPN_DT, '') = '' and ifnull(PSG1.WORK_CMDT, '') = '' and ifnull(PSG2.WORK_CMDT, '') = '' and ifnull(PSG3.WORK_CMDT, '') = '' and ifnull(PSG4.WORK_CMDT, '') = '' and ifnull(PSI.CHK_CMPL_DT, '') = '' and ifnull(PSC.MNG_STRT_DT, '') = '' and ifnull(PSC.TERM_DT, '') = '',  1, 0)) as pscCnt,
+        sum(if (ifnull(PSC.CNRT_STRT_DT, '') != '' and ifnull(PSP.WKPL_CMPL_DT, '') != '' and ifnull(PSC.EXPN_DT, '') = '' and ifnull(PSG1.WORK_CMDT, '') = '' and ifnull(PSG2.WORK_CMDT, '') = '' and ifnull(PSG3.WORK_CMDT, '') = '' and ifnull(PSG4.WORK_CMDT, '') = '' and ifnull(PSI.CHK_CMPL_DT, '') = '' and ifnull(PSC.MNG_STRT_DT, '') = '' and ifnull(PSC.TERM_DT, '') = '',  1, 0)) as pspCnt,
+        sum(if (ifnull(PSC.CNRT_STRT_DT, '') != '' and ifnull(PSP.WKPL_CMPL_DT, '') != '' and ifnull(PSC.EXPN_DT, '') != '' and ifnull(PSG1.WORK_CMDT, '') = '' and ifnull(PSG2.WORK_CMDT, '') = '' and ifnull(PSG3.WORK_CMDT, '') = '' and ifnull(PSG4.WORK_CMDT, '') = '' and ifnull(PSI.CHK_CMPL_DT, '') = '' and ifnull(PSC.MNG_STRT_DT, '') = '' and ifnull(PSC.TERM_DT, '') = '',  1, 0)) as wkplCmplCnt,
+        sum(if (ifnull(PSC.CNRT_STRT_DT, '') != '' and ifnull(PSP.WKPL_CMPL_DT, '') != '' and ifnull(PSC.EXPN_DT, '') != '' and ifnull(PSG1.WORK_CMDT, '') != '' and ifnull(PSG2.WORK_CMDT, '') = '' and ifnull(PSG3.WORK_CMDT, '') = '' and ifnull(PSG4.WORK_CMDT, '') = '' and ifnull(PSI.CHK_CMPL_DT, '') = '' and ifnull(PSC.MNG_STRT_DT, '') = '' and ifnull(PSC.TERM_DT, '') = '',  1, 0)) as applCnt,
+        sum(if (ifnull(PSC.CNRT_STRT_DT, '') != '' and ifnull(PSP.WKPL_CMPL_DT, '') != '' and ifnull(PSC.EXPN_DT, '') != '' and ifnull(PSG1.WORK_CMDT, '') != '' and ifnull(PSG2.WORK_CMDT, '') != '' and ifnull(PSG3.WORK_CMDT, '') = '' and ifnull(PSG4.WORK_CMDT, '') = '' and ifnull(PSI.CHK_CMPL_DT, '') = '' and ifnull(PSC.MNG_STRT_DT, '') = '' and ifnull(PSC.TERM_DT, '') = '',  1, 0)) as apprCnt,
+        sum(if (ifnull(PSC.CNRT_STRT_DT, '') != '' and ifnull(PSP.WKPL_CMPL_DT, '') != '' and ifnull(PSC.EXPN_DT, '') != '' and ifnull(PSG1.WORK_CMDT, '') != '' and ifnull(PSG2.WORK_CMDT, '') != '' and ifnull(PSG3.WORK_CMDT, '') != '' and ifnull(PSG4.WORK_CMDT, '') = '' and ifnull(PSI.CHK_CMPL_DT, '') = '' and ifnull(PSC.MNG_STRT_DT, '') = '' and ifnull(PSC.TERM_DT, '') = '',  1, 0)) as mpCnt,
+        sum(if (ifnull(PSC.CNRT_STRT_DT, '') != '' and ifnull(PSP.WKPL_CMPL_DT, '') != '' and ifnull(PSC.EXPN_DT, '') != '' and ifnull(PSG1.WORK_CMDT, '') != '' and ifnull(PSG2.WORK_CMDT, '') != '' and ifnull(PSG3.WORK_CMDT, '') != '' and ifnull(PSG4.WORK_CMDT, '') != '' and ifnull(PSI.CHK_CMPL_DT, '') = '' and ifnull(PSC.MNG_STRT_DT, '') = '' and ifnull(PSC.TERM_DT, '') = '',  1, 0)) as insCnt,
+        sum(if (ifnull(PSC.CNRT_STRT_DT, '') != '' and ifnull(PSP.WKPL_CMPL_DT, '') != '' and ifnull(PSC.EXPN_DT, '') != '' and ifnull(PSG1.WORK_CMDT, '') != '' and ifnull(PSG2.WORK_CMDT, '') != '' and ifnull(PSG3.WORK_CMDT, '') != '' and ifnull(PSG4.WORK_CMDT, '') != '' and ifnull(PSI.CHK_CMPL_DT, '') != '' and ifnull(PSC.MNG_STRT_DT, '') = '' and ifnull(PSC.TERM_DT, '') = '',  1, 0)) as inspCnt,
+        sum(if (ifnull(PSC.CNRT_STRT_DT, '') != '' and ifnull(PSP.WKPL_CMPL_DT, '') != '' and ifnull(PSC.EXPN_DT, '') != '' and ifnull(PSG1.WORK_CMDT, '') != '' and ifnull(PSG2.WORK_CMDT, '') != '' and ifnull(PSG3.WORK_CMDT, '') != '' and ifnull(PSG4.WORK_CMDT, '') != '' and ifnull(PSI.CHK_CMPL_DT, '') != '' and ifnull(PSC.MNG_STRT_DT, '') != '' and ifnull(PSC.TERM_DT, '') = '',  1, 0)) as mngCnt,
+        sum(if (ifnull(PSC.TERM_DT, '') != '',  1, 0)) as endCnt
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        LEFT JOIN PRJ_SITE_PLAN PSP
+        ON PSC.SITE_ID = PSP.SITE_ID
+        LEFT JOIN PRJ_SITE_GRID PSG1
+        ON (PSC.SITE_ID = PSG1.SITE_ID
+        AND PSG1.WORK_GUBN = '1' /* 만약 그리드신청 코드가 1이라는 가정 */
+        )
+        LEFT JOIN PRJ_SITE_GRID PSG2
+        ON (PSC.SITE_ID = PSG2.SITE_ID
+        AND PSG2.WORK_GUBN = '2' /* 만약 그리드승인 코드가 2이라는 가정 */
+        )
+        LEFT JOIN PRJ_SITE_GRID PSG3
+        ON (PSC.SITE_ID = PSG3.SITE_ID
+        AND PSG3.WORK_GUBN = '3' /* 만약 자재구매 코드가 3이라는 가정 */
+        )
+        LEFT JOIN PRJ_SITE_GRID PSG4
+        ON (PSC.SITE_ID = PSG4.SITE_ID
+        AND PSG4.WORK_GUBN = '4' /* 만약 설치 코드가 4이라는 가정 */
+        )
+        LEFT JOIN PRJ_SITE_INSP PSI
+        ON (PSC.SITE_ID = PSI.SITE_ID)
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+
+
+    </select>
+
+    <select id="contractPlan" parameterType="com.rest.api.model.pp.ContractPlanVO" resultType="com.rest.api.model.pp.ContractPlanVO">
+        SELECT
+            PSC.SITE_ID 				AS siteId 			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            , PSU.USER_SEQ 			    AS userSeq			/* 사용자번호 */
+            , CU.USER_ID 				AS userId			/* 사용자ID */
+            , CU.USER_NAME   			AS userName 		/* 사용자명 */
+            , CU.EMAIL                  AS email            /* 메일 */
+            , CU.TEL_NO                 AS telNo            /* 전화번호 */
+            , PSC.ADDR 					AS addr 			/* 주소 */
+            , PSC.REGN_GUBN 			AS regnGubn 		/* 지역구분*/
+            , @@SESSION.time_zone 		AS timeZone
+            , PSC.SPC 					AS spc
+            , PSC.CURR_UNIT 			AS currUnit 		/* 통화단위 (코드ID : CDK-00013, 보통 3자리로 쓰는데 여기는 2자리로 쓰는 듯.) */
+            , PSC.CNRT_STRT_DT 		    AS cnrtStrtDt 		/* 계약시작일*/
+            , PSC.CNRT_END_DT 		    AS cnrtEndDt 		/* 계약종료일*/
+            , PPA_UNIT_PRCE 			AS ppaUnitPrce 	    /* PPA단가 */
+            , PSC.ICTV 					AS ictv 			/* 인센티브 */
+            , PSC.TOTL_COST 			AS totlCost 		/* TotalCost */
+            , PSC.STC 					AS stc 				/* STC */
+            , PSC.RESC_GUBN 			AS rescGubn  		/* 자원구분 (코드ID : CDK-00011( A:PV/B:PV+ESS )) */
+            , PSU2.USER_SEQ 			AS instPsnSeq		/* 설치담당자번호 */
+            , CU2.USER_ID 		        AS instPsnId		/* 설치담당자ID */
+            , CU2.USER_NAME 		    AS instPsnName		/* 설치담당자명 */
+            , PSC.PV_INST_CAPA 		    AS pvInstCapa 		/* PV설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            , PSC.ESS_INST_CAPA 		AS essInstCapa 	    /* ESS설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+
+            , PSP.WKPL_CMPL_DT 		    AS wkplCmplDt 		/* 작업계획수립완료 */
+            , PSP.PLAN_TOTL_COST 		    AS planTotlCost 		/* 작업계획수립 TotalCost */
+            
+            
+            , PSC.EXPN_DT 				AS expnDt 			/* 사업비승인일 */
+            /* 점검일 */
+            /* 운영일 */
+            , (SELECT NOTE FROM PRJ_SITE_NOTE PSN WHERE 1=1 AND PSN.SITE_ID = PSC.SITE_ID AND NOTE_GUBN = '1' ) AS contractNote /* 계약정보 특이사항 */
+
+            /* 계획수립 */
+            , PSP.MODL_MNFT_GUBN 	    AS modlMnftGubn 	/* 모듈제조사구분 (코드ID : CDK-00006)*/
+            , PSP.MODL_CAPA 			AS modlCapa 		/* 모듈용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            , PSP.INVT_MNFT_GUBN    	AS invtMnftGubn 	/* 인버터제조사구분 (코드ID : CDK-00007) */
+            , PSP.INVT_CAPA 			AS invtCapa 		/* 인버터용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            , PSP.BTRY_MNFT_GUBN 	    AS btryMnftGubn 	/* 배터리제조사구분 (코드ID : CDK-00008) */
+            , PSP.BTRY_CAPA 			AS btryCapa 		/* 배터리용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            , PSP.COMU_EQMT_GUBN    	AS comuEqmtGubn 	/* 통신장비제조사구분 (코드ID : CDK-00014) */
+            , PSP.COMU_MTHD_GUBN 	    AS comuMthdGubn 	/* 통신방식구분 (코드ID : CDK-00015) */
+            , PSG1.WORK_DUDT			AS applDudt 		/* 신청예정일 */
+            , PSG2.WORK_DUDT 			AS apprDudt 		/* 승인예정일 */
+            , PSG3.WORK_DUDT 			AS mpDudt 			/* 자재구매예정일 */
+            , PSG4.WORK_DUDT 			AS insDudt 		    /* 설치예정일 */
+            , PSP.WKPL_CMPL_DT          AS wkplCmplDt       /* 계획수립완료일 */
+            , (SELECT NOTE FROM PRJ_SITE_NOTE PSN WHERE 1=1 AND PSN.SITE_ID = PSC.SITE_ID AND NOTE_GUBN = '2' ) AS planNote /* 계획수립 특이사항 */
+            , PSC.LATD                  AS latd       /* 위도 */
+            , PSC.LGTD                  AS lgtd       /* 경도 */
+        FROM PRJ_SITE_CNRT PSC
+           LEFT JOIN  PRJ_SITE_USER PSU
+           ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005'
+           )
+            LEFT JOIN PRJ_SITE_USER PSU2
+            ON (PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD ='ACN003'
+            )
+           LEFT JOIN PRJ_SITE_GRID PSG1
+           ON (PSC.SITE_ID = PSG1.SITE_ID
+           AND PSG1.WORK_GUBN = '1' /* 만약 그리드신청 코드가 1이라는 가정 */
+           )
+           LEFT JOIN PRJ_SITE_GRID PSG2
+           ON (PSC.SITE_ID = PSG2.SITE_ID
+           AND PSG2.WORK_GUBN = '2' /* 만약 그리드승인 코드가 2이라는 가정 */
+           )
+           LEFT JOIN PRJ_SITE_GRID PSG3
+           ON (PSC.SITE_ID = PSG3.SITE_ID
+           AND PSG3.WORK_GUBN = '3' /* 만약 자재구매 코드가 3이라는 가정 */
+           )
+           LEFT JOIN PRJ_SITE_GRID PSG4
+           ON (PSC.SITE_ID = PSG4.SITE_ID
+           AND PSG4.WORK_GUBN = '4' /* 만약 설치 코드가 4이라는 가정 */
+           )
+           LEFT JOIN CMN_USER CU
+           ON (PSU.USER_SEQ = CU.USER_SEQ
+           )
+           LEFT JOIN CMN_USER CU2
+           ON (PSU2.USER_SEQ = CU2.USER_SEQ
+           )
+
+
+           LEFT JOIN PRJ_SITE_PLAN PSP
+		   ON PSC.SITE_ID = PSP.SITE_ID
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        AND PSC.SITE_ID = #{siteId}
+    </select>
+
+    <select id="expnList" parameterType="com.rest.api.model.pp.ExpnVO" resultType="com.rest.api.model.pp.ExpnVO">
+        SELECT PSC.SITE_ID    AS siteId         /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            , PSC.NCTR_MEM_YN AS nctrMemYn 		/* Nectr회원여부 */
+            , PSC.EXPN_DT 	  AS expnDt 		/* 사업비승인일 */
+            , (SELECT NOTE FROM PRJ_SITE_NOTE PSN WHERE 1=1 AND PSN.SITE_ID = PSC.SITE_ID AND NOTE_GUBN = '3' ) AS note /* 사업비승인 특이사항 */
+        FROM  PRJ_SITE_CNRT PSC
+        WHERE 1=1
+        AND PSC.SITE_ID = #{siteId}	    /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        AND PSC.DEL_YN 	= 'N'			/* 삭제여부 */
+    </select>
+
+    <select id="gridList" parameterType="com.rest.api.model.pp.SiteGridVO" resultType="com.rest.api.model.pp.SiteGridVO">
+        SELECT
+            PSC.SITE_ID 		AS siteId		    /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            , PSG1.APRV_CMP 	AS applAprvCmp		/* 그리드신청 승인회사 (코드ID : CDK-00016 ( 이게 맞는지는 잘 모르겠음 )) */
+            , PSG1.WORK_DUDT 	AS applWorkDudt 	/* 그리드신청 신청예정일 */
+            , PSG1.WORK_CMDT 	AS applWorkCmdt 	/* 그리드신청 신청완료일 */
+            , (SELECT NOTE FROM PRJ_SITE_NOTE PSN WHERE 1=1 AND PSN.SITE_ID = PSC.SITE_ID AND NOTE_GUBN = '4' ) AS applNote /* 그리드신청 특이사항 */
+
+            , PSG2.APRV_CMP 	AS apprAprvCmp		/* 그리드승인 승인회사 (코드ID : CDK-00016 ( 이게 맞는지는 잘 모르겠음 )) */
+            , PSG2.WORK_DUDT 	AS apprWorkDudt 	/* 그리드승인 승인예정일 */
+            , PSG2.WORK_CMDT 	AS apprWorkCmdt 	/* 그리드승인 승인완료일 */
+            , PSG2.APRV_YN 	    AS apprAprvYn 		/* 그리드승인 그리드승인여부 */
+            , PSG2.FAIL_RSN	    AS apprFailRsn		/* 그리드승인 불합격여부 */
+            , (SELECT NOTE FROM PRJ_SITE_NOTE PSN WHERE 1=1 AND PSN.SITE_ID = PSC.SITE_ID AND NOTE_GUBN = '5' ) AS apprNote /* 그리드승인 특이사항 */
+
+            , PSG3.WORK_DUDT 	AS mpWorkDudt 	    /* 그리드자재구매예정일 */
+            , PSG3.WORK_CMDT 	AS mpWorkCmdt 	    /* 그리드자재구매완료일 */
+            , (SELECT NOTE FROM PRJ_SITE_NOTE PSN WHERE 1=1 AND PSN.SITE_ID = PSC.SITE_ID AND NOTE_GUBN = '6' ) AS mpNote /* 그리드자재구매 특이사항 */
+
+            , PSG4.WORK_DUDT 	AS insWorkDudt 	    /* 그리드 설치 예정일 */
+            , PSG4.WORK_CMDT 	AS insWorkCmdt 	    /* 그리드 설치 완료일 */
+            , (SELECT NOTE FROM PRJ_SITE_NOTE PSN WHERE 1=1 AND PSN.SITE_ID = PSC.SITE_ID AND NOTE_GUBN = '7' ) AS insNote /* 그리드설치 특이사항 */
+
+        FROM PRJ_SITE_CNRT PSC
+        LEFT JOIN PRJ_SITE_PLAN PSP
+        ON PSC.SITE_ID = PSP.SITE_ID
+
+        LEFT JOIN PRJ_SITE_GRID PSG1
+        ON (PSC.SITE_ID = PSG1.SITE_ID
+                AND PSG1.WORK_GUBN = '1' /* 만약 그리드신청 코드가 1이라는 가정 */
+            )
+        LEFT JOIN PRJ_SITE_GRID PSG2
+        ON (PSC.SITE_ID = PSG2.SITE_ID
+                AND PSG2.WORK_GUBN = '2' /* 만약 그리드승인 코드가 2이라는 가정 */
+            )
+        LEFT JOIN PRJ_SITE_GRID PSG3
+        ON (PSC.SITE_ID = PSG3.SITE_ID
+                AND PSG3.WORK_GUBN = '3' /* 만약 자재구매 코드가 3이라는 가정 */
+            )
+        LEFT JOIN PRJ_SITE_GRID PSG4
+        ON (PSC.SITE_ID = PSG4.SITE_ID
+                AND PSG4.WORK_GUBN = '4' /* 만약 설치 코드가 4이라는 가정 */
+            )
+        WHERE 1=1
+        AND PSC.DEL_YN ='N'
+        AND PSC.SITE_ID = #{siteId}
+    </select>
+
+    <insert id="contractInsert" parameterType="com.rest.api.model.pp.ContractPlanInsert" >
+        <selectKey keyProperty="siteId" resultType="String" order="BEFORE">
+            SELECT  CONCAT(CONCAT('AU',LPAD(IFNULL(#{regnGubn},'AU001'),'5','0')),date_format(NOW(),'%Y%m'),(SELECT LPAD(IFNULL(MAX(SUBSTRING(SITE_ID,14,5)),0)+1,5,0) FROM PRJ_SITE_CNRT PSC WHERE 1=1 AND SUBSTRING(SITE_ID,1,13) = CONCAT('AU',LPAD(IFNULL(#{regnGubn},'AU001'),'5','0'),date_format(NOW(),'%Y%m')))) 	FROM DUAL
+        </selectKey>
+        INSERT INTO PRJ_SITE_CNRT
+        (
+             SITE_ID 				/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            , LAST_CHNG_USEQ 		/* 최종작업자번호 */
+            , ADDR 					/* 주소 */
+            , REGN_GUBN 			/* 지역구분 */
+            , TIME_ZONE 			/* TimeZone */
+            , SPC 					/* SPC */
+            , CURR_UNIT 			/* 통화단위 (코드ID : CDK-00013, 보통 3자리로 쓰는데 여기는 2자리로 쓰는 듯.) */
+            , CNRT_STRT_DT 		    /* 계약시작일 */
+            , CNRT_END_DT 			/* 계약종료일 */
+            , PPA_UNIT_PRCE 		/* PPA단가 */
+            , ICTV 					/* 인센티브 */
+            , TOTL_COST 			/* TotalCost */
+            , STC 					/* STC */
+            , RESC_GUBN 			/* 자원구분 (코드ID : CDK-00011( A:PV/B:PV+ESS )) */
+            , PV_INST_CAPA 		    /* PV설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            , ESS_INST_CAPA 		/* ESS설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            , DEL_YN 				/* 삭제여부 */
+            , LATD                  /* 위도 */
+            , LGTD                  /* 경도 */
+            , NCTR_MEM_YN
+        )
+        VALUES
+        (
+            #{siteId}
+            , #{lastChngUseq} 		/* 최종작업자번호 */
+            , #{addr} 				/* 주소 */
+            , #{regnGubn} 			/* 지역구분 */
+            , #{timeZone} 			/* TimeZone */
+            , #{spc} 				/* SPC */
+            , IFNULL(#{currUnit},'AU') 			/* 통화단위 (코드ID : CDK-00013, 보통 3자리로 쓰는데 여기는 2자리로 쓰는 듯.) */
+            , #{cnrtStrtDt}	 	    /* 계약시작일 */
+            , #{cnrtEndDt} 		    /* 계약종료일 */
+            , #{ppaUnitPrce}	 	/* PPA단가 */
+            , #{ictv} 				/* 인센티브 */
+            , #{totlCost} 			/* TotalCost */
+            , #{stc} 				/* STC */
+            , #{rescGubn} 			/* 자원구분 (코드ID : CDK-00011( A:PV/B:PV+ESS )) */
+            , #{pvInstCapa} 		/* PV설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            , #{essInstCapa} 		/* ESS설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            , 'N' 					/* 삭제여부 */
+            , #{latd}                  /* 위도 */
+            , #{lgtd}                  /* 경도 */
+            , IFNULL(#{nctrMemYn},'N')
+        )
+
+
+    </insert>
+
+    <insert id="planInsert" parameterType="com.rest.api.model.pp.ContractPlanInsert" >
+        INSERT INTO PRJ_SITE_PLAN
+        (
+            SITE_ID 				/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            , LAST_CHNG_USEQ 		/* 최종작업자번호 */
+            , MODL_MNFT_GUBN 		/* 모듈제조사구분 (코드ID : CDK-00006) */
+            , MODL_CAPA 			/* 모듈용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            , INVT_MNFT_GUBN 		/* 인버터제조사구분 (코드ID : CDK-00007) */
+            , INVT_CAPA 			/* 인버터용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            , BTRY_MNFT_GUBN 		/* 배터리제조사구분 (코드ID : CDK-00008) */
+            , BTRY_CAPA 			/* 배터리용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            , COMU_EQMT_GUBN 		/* 통신장비제조사구분 (코드ID : CDK-00014) */
+            , COMU_MTHD_GUBN 		/* 통신방식구분 (코드ID : CDK-00015) */
+            , WKPL_CMPL_DT 		    /* 작업계획수립완료일 */
+            , PLAN_TOTL_COST 		    /* 작업계획수립 TotalCost */
+        )
+        VALUES
+        (
+            #{siteId} 				/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            , #{lastChngUseq} 		/* 최종작업자번호 */
+            , #{modlMnftGubn} 	    /* 모듈제조사구분 (코드ID : CDK-00006) */
+            , #{modlCapa} 			/* 모듈용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            , #{invtMnftGubn} 	    /* 인버터제조사구분 (코드ID : CDK-00007) */
+            , #{invtCapa} 			/* 인버터용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            , #{btryMnftGubn} 	    /* 배터리제조사구분 (코드iD : CDK-00008) */
+            , #{btryCapa} 			/* 배터리용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            , #{comuEqmtGubn} 		/* 통신장비제조사구분 (코드ID : CDK-00014) */
+            , #{comuMthdGubn} 	    /* 통신방식구분 (코드ID : CDK-00015) */
+            , #{wkplCmplDt} 		/* 작업계획수립완료일 */
+            , #{planTotlCost} 		/* 작업계획수립 TotalCost */
+        )
+    </insert>
+
+    <insert id="noteInsert" parameterType="com.rest.api.model.pp.NoteInsert" >
+        INSERT INTO PRJ_SITE_NOTE
+        (
+            SITE_ID 				/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            , NOTE_GUBN 			/* 특이사항구분코드 (계약정보/계획수립/계약확정/그리드신청/그리드승인/자재구매/설치 등) */
+            , LAST_CHNG_USEQ 		/* 최종작업자번호 */
+            , NOTE 					/* 특이사항 */
+        )
+        VALUES
+        (
+            #{siteId} 				/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            , #{noteGubn} 			/* 특이사항구분코드 (계약정보/계획수립/계약확정/그리드신청/그리드승인/자재구매/설치 등) */
+            , #{lastChngUseq} 		/* 최종작업자번호 */
+            , #{note} 				/* 특이사항 */
+        )
+    </insert>
+
+    <update id="noteUpdate" parameterType="com.rest.api.model.pp.NoteInsert" >
+        UPDATE PRJ_SITE_NOTE
+        SET LAST_CHNG_USEQ = #{lastChngUseq} 		/* 최종작업자번호 */
+        , NOTE = #{note} 				            /* 특이사항 */
+        where 1=1
+        AND SITE_ID = #{siteId}     /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        AND NOTE_GUBN = #{noteGubn}	/* 특이사항구분코드 (계약정보/계획수립/계약확정/그리드신청/그리드승인/자재구매/설치 등) */
+    </update>
+
+    <insert id="prjSiteUserInsert" parameterType="com.rest.api.model.pp.ContractPlanInsert" >
+        INSERT INTO PRJ_SITE_USER
+        (
+            USER_SEQ				/* 사용자번호 */
+            ,SITE_ID				/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            ,LAST_CHNG_USEQ	        /* 최종작업자번호 */
+            ,SITE_ULVL_CD            /* 사용자등급코드 */
+        )
+        VALUES
+        (
+              #{userSeq} 			/* 사용자번호 */
+              , #{siteId} 			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+              , #{lastChngUseq} 	/* 최종작업자번호 */
+              , #{siteUlvlCd}       /* 사이트별사용자등급코드 */
+        )
+    </insert>
+
+    <update id="expnUpdate" parameterType="com.rest.api.model.pp.ExpnUpdate" >
+        UPDATE PRJ_SITE_CNRT
+        SET
+             NCTR_MEM_YN = #{nctrMemYn} 		/* Nectr회원여부 */
+            , EXPN_DT 	 = #{expnDt} 			/* 사업비승인일 */
+            , LAST_CHNG_USEQ = #{lastChngUseq} /* 최종사용자번호 */
+
+        WHERE 1=1
+        AND SITE_ID = #{siteId}	/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        AND DEL_YN 	= 'N'			/* 삭제여부 */
+
+    </update>
+
+    <update id="prjSiteUserUpdate" parameterType="com.rest.api.model.pp.ContractPlanUpdate" >
+        UPDATE PRJ_SITE_USER
+        SET LAST_CHNG_USEQ = #{lastChngUseq} 	/* 최종작업자번호 */
+            , USER_SEQ = #{userSeq}
+        WHERE 1=1
+        AND SITE_ID = #{siteId}
+        AND SITE_ULVL_CD = #{siteUlvlCd}        /* 사용자등급코드 */
+    </update>
+
+    <update id="contractUpdate" parameterType="com.rest.api.model.pp.ContractPlanUpdate" >
+        UPDATE PRJ_SITE_CNRT
+        SET LAST_CHNG_USEQ = #{lastChngUseq} 	/* 최종작업자번호 */
+            , ADDR = #{addr} 			        /* 주소 */
+            , REGN_GUBN = #{regnGubn} 		    /* 지역구분 */
+            , TIME_ZONE  = #{timeZone} 		    /* TimeZone */
+            , SPC = #{spc} 				        /* SPC */
+            , CURR_UNIT = #{currUnit} 		    /* 통화단위 (코드ID : CDK-00013, = 보통 3자리로 쓰는데 여기는 2자리로 쓰는 듯.) */
+            <if test="cnrtStrtDt != null" >
+            , CNRT_STRT_DT = #{cnrtStrtDt}	    /* 계약시작일 */
+            </if>
+            <if test="cnrtEndDt != null" >
+            , CNRT_END_DT = #{cnrtEndDt} 	    /* 계약종료일 */
+            </if>
+            , PPA_UNIT_PRCE = #{ppaUnitPrce}	/* PPA단가 */
+            , ICTV = #{ictv} 				    /* 인센티브 */
+            , TOTL_COST = #{totlCost} 		    /* TotalCost */
+            , STC = #{stc} 				        /* STC */
+            , RESC_GUBN = #{rescGubn} 		    /* 자원구분 (코드ID : CDK-00011( A:PV/B:PV+ESS )) */
+            , PV_INST_CAPA = #{pvInstCapa} 	    /* PV설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            , ESS_INST_CAPA = #{essInstCapa}    /* ESS설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            , LATD = #{latd}                    /* 위도 */
+            , LGTD = #{lgtd}                    /* 경도 */
+        WHERE 1=1
+        AND SITE_ID = #{siteId}     /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        AND DEL_YN = 'N'	        /* 삭제여부 */
+    </update>
+
+    <update id="planUpdate" parameterType="com.rest.api.model.pp.ContractPlanUpdate" >
+        UPDATE PRJ_SITE_PLAN
+        SET LAST_CHNG_USEQ = #{lastChngUseq} 	/* 최종작업자번호 */
+            ,MODL_MNFT_GUBN = #{modlMnftGubn} 	/* 모듈제조사구분 (코드ID : CDK-00006) */
+            ,MODL_CAPA = #{modlCapa} 			/* 모듈용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            ,INVT_MNFT_GUBN = #{invtMnftGubn} 	/* 인버터제조사구분 (코드ID : CDK-00007) */
+            ,INVT_CAPA = #{invtCapa} 			/* 인버터용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            ,BTRY_MNFT_GUBN = #{btryMnftGubn} 	/* 배터리제조사구분 (코드iD : CDK-00008) */
+            ,BTRY_CAPA = #{btryCapa} 			/* 배터리용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            ,COMU_EQMT_GUBN = #{comuEqmtGubn} 	/* 통신장비제조사구분 (코드ID : CDK-00014) */
+            ,COMU_MTHD_GUBN = #{comuMthdGubn} 	/* 통신방식구분 (코드ID : CDK-00015) */
+            ,WKPL_CMPL_DT = #{wkplCmplDt} 		/* 작업계획수립완료일 */
+            ,PLAN_TOTL_COST = #{planTotlCost} 		/* 작업계획수립 TotalCost */
+        where 1=1
+        AND SITE_ID = #{siteId}     /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+
+    </update>
+
+    <update id="contractDelete" parameterType="com.rest.api.model.pp.ContractPlanVO" >
+        UPDATE PRJ_SITE_CNRT
+        SET LAST_CHNG_USEQ = #{lastChngUseq} 	/* 최종작업자번호 */
+          , DEL_YN = 'Y'
+        where 1=1
+        AND SITE_ID = #{siteId}     /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+
+    </update>
+
+    <insert id="siteGridInsert" parameterType="com.rest.api.model.pp.SiteGridInsert" >
+        INSERT INTO PRJ_SITE_GRID
+        (
+            SITE_ID				/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            ,WORK_GUBN			/* 작업구분 (GRID신청/GRID승인/자재구매/설치예정) */
+            ,LAST_CHNG_USEQ		/* 최종작업자번호 */
+            ,WORK_DUDT			/* 작업예정일 */
+        )
+        VALUES
+        (
+            #{siteId}				/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            ,#{workGubn}			/* 작업구분 (GRID신청/GRID승인/자재구매/설치예정) */
+            ,#{lastChngUseq}		/* 최종작업자번호 */
+            ,#{workDudt}		    /* 작업예정일 */
+        )
+    </insert>
+
+    <update id="siteGridUpdate" parameterType="com.rest.api.model.pp.SiteGridTableUpdate" >
+        UPDATE PRJ_SITE_GRID
+        SET
+            LAST_CHNG_USEQ	= #{lastChngUseq}	/* 최종작업자번호 */
+            ,WORK_DUDT = #{workDudt}			/* 작업예정일 */
+            ,WORK_CMDT = #{workCmdt}			/* 작업완료일 */
+            <if test="aprvCmp != null and  aprvCmp != ''">
+                ,APRV_CMP = #{aprvCmp}				/* 승인회사 (코드ID : CDK-00016 ( 이게 맞는지는 잘 모르겠음 )) */
+            </if>
+
+            <if test="aprvYn != null and  aprvYn != ''">
+                ,APRV_YN  = #{aprvYn}				/* 그리드승인여부 */
+            </if>
+
+            <if test="failRsn != null and  failRsn != ''">
+                ,FAIL_RSN = #{failRsn}				/* 불합격사유 */
+            </if>
+        WHERE 1=1
+        AND SITE_ID 	= 	#{siteId}			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        AND WORK_GUBN  =  #{workGubn}			/* 작업구분 (GRID신청/GRID승인/자재구매/설치예정) */
+
+    </update>
+
+    <select id="termList" parameterType="com.rest.api.model.pp.PrjSiteTermVO" resultType="com.rest.api.model.pp.PrjSiteTermVO">
+        SELECT
+            PSC.SITE_ID 	AS siteId		    /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            ,TERM_DT        AS termDt 			/* 해지일 */
+	        ,TERM_RSN       AS termRsn 			/* 해지사유 */
+        FROM PRJ_SITE_CNRT PSC
+        WHERE 1=1
+        AND PSC.SITE_ID = #{siteId}
+    </select>
+
+
+    <update id="termUpdate" parameterType="com.rest.api.model.pp.TermUpdate" >
+        UPDATE PRJ_SITE_CNRT
+        SET
+            LAST_CHNG_USEQ  = #{lastChngUseq}       /* 최종사용자번호 */
+            ,TERM_DT        = #{termDt} 			/* 해지일 */
+            ,TERM_RSN       = #{termRsn} 			/* 해지사유 */
+            ,CNRT_END_DT    = #{termDt}
+            ,PROCESS		= 'SP009'
+        WHERE 1=1
+        AND SITE_ID = #{siteId}	    /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        AND DEL_YN 	= 'N'			/* 삭제여부 */
+
+    </update>
+
+    <select id="goalList" parameterType="com.rest.api.model.pp.PrjSiteGoalVO" resultType="com.rest.api.model.pp.PrjSiteGoalVO">
+        SELECT
+            SITE_ID 			AS siteId 			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            ,GOAL_DT 			AS goalDt			/* 목표일자 */
+            ,GOAL_GENR_CAPA 	AS goalGenrCapa	    /* 목표발전량 (기본단위 : kWh ( 코드ID : CDK-00018.TUN007 )) */
+            ,PR 				AS pr				/* PR (%) */
+            ,PPA 				AS ppa				/* PPA거래량 (기본단위 : kWh ( 코드ID : CDK-00018.TUN007 )) */
+            ,SALE 				AS sale				/* 매출 */
+            ,ENERGY_YIELD 		AS energy			/* Energy Yield (Wh/Wp)  */
+            ,IVT_EFFICIENCY 	AS ivt				/* IVT Efficiency(%) */
+        FROM PRJ_SITE_GOAL PG
+        WHERE 1=1
+        AND PG.SITE_ID = #{siteId}
+    </select>
+
+    <update id="goalListUpdate" parameterType="com.rest.api.model.pp.PrjSiteGoalUpdate" >
+       	UPDATE PRJ_SITE_GOAL
+        SET
+            LAST_CHNG_USEQ		= #{lastChngUseq}	/* 최종작업자번호 */
+            ,GOAL_GENR_CAPA 	= #{goalGenrCapa}	/* 목표발전량 (기본단위 : kWh ( 코드ID : CDK-00018.TUN007 )) */
+            ,PR 				= #{pr}				/* PR (%) */
+            ,PPA  				= #{ppa}			/* PPA거래량 (기본단위 : kWh ( 코드ID : CDK-00018.TUN007 )) */
+            ,SALE 				= #{sale}			/* 매출 */
+        WHERE 1=1
+        AND SITE_ID 	= 	#{siteId}				/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        AND GOAL_DT		=  #{goalDt}				/* 목표일자 */
+    </update>
+
+    <insert id="goalListInsert" parameterType="com.rest.api.model.pp.PrjSiteGoalInsert" >
+       	INSERT INTO PRJ_SITE_GOAL
+       	(
+       	SITE_ID
+       	,GOAL_DT
+       	,GOAL_GENR_CAPA
+       	,ENERGY_YIELD
+       	,IVT_EFFICIENCY
+       	,PR
+       	,PPA
+       	,SALE
+       	,LAST_CHNG_USEQ
+
+       	)VALUES(
+       	#{siteId}
+       	,#{goalDt}
+       	,#{goalGenrCapa}
+       	,#{energy}
+       	,#{ivt}
+       	,#{pr}
+       	,#{ppa}
+       	,#{sale}
+       	,#{lastChngUseq}
+       	)
+
+
+    </insert>
+    <select id="inspMng" parameterType="com.rest.api.model.pp.InspMngVO" resultType="com.rest.api.model.pp.InspMngVO">
+       SELECT PSC.SITE_ID 		AS siteId			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            , PSU.USER_SEQ				AS inspUserSeq		/* inspection 담당자번호 */
+            , CU.USER_ID				AS inspUserId		/* inspection 담당자ID */
+            , CU.USER_NAME				AS inspUserName	/* inspection 담당자명 */
+            , CU.EMAIL					AS inspEmail		/*	inspection 이메일 */
+
+            , PSI.CHK_PASS_YN  		AS chkPassYn		/* 점검합격여부*/
+            , PSI.CHK_CMPL_DT 		AS chkCmplDt		/* 점검완료일*/
+            , PSI.CHK_FAIL_RSN		AS chkFailRsn 		/* 점검불합격사유*/
+            , PSI.CHK_HIST  	 		AS chkHist			/* 점검이력 (점검합격여부가 N인 경우 점검불합격사유를 저장할때마다 ADD)*/
+            , (SELECT NOTE FROM PRJ_SITE_NOTE PSN WHERE 1=1 AND PSN.SITE_ID = PSC.SITE_ID AND NOTE_GUBN = '8' ) AS inspNote /* inspection 특이사항 */
+            , PSU2.USER_SEQ	 		AS mngUserSeq		/* 운영 담당자 번호 */
+            , CU2.USER_ID				AS mngUserId		/* 운영 담당자ID */
+            , CU2.USER_NAME			AS mngUserName		/* 운영 담당자명 */
+            , CU2.EMAIL					AS mngEmail			/*	이메일 */
+            , PSC.MNG_STRT_DT			AS mngStrtDt		/* 운영시작일 */
+            , (SELECT NOTE FROM PRJ_SITE_NOTE PSN WHERE 1=1 AND PSN.SITE_ID = PSC.SITE_ID AND NOTE_GUBN = '9' ) AS mngNote  /* 운영 특이사항 */
+            , CP.PLANT_KEY AS psId  /* psId(plant_key =>해당 사이트 ps_id */
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD = 'ACN003')
+        LEFT JOIN PRJ_SITE_USER PSU2
+        ON (PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD = 'ACN004')
+        JOIN CMN_USER CU
+        ON (PSU.USER_SEQ = CU.USER_SEQ)
+        LEFT JOIN CMN_USER CU2
+        ON (PSU2.USER_SEQ = CU2.USER_SEQ)
+        LEFT JOIN PRJ_SITE_INSP PSI
+        ON (PSC.SITE_ID = PSI.SITE_ID)
+        LEFT JOIN CMN_PLANT CP
+        ON ( PSC.SITE_ID = CP.SITE_ID)
+        WHERE PSC.SITE_ID = #{siteId}
+    </select>
+
+    <update id="inspUpdate" parameterType="com.rest.api.model.pp.SiteInspUpdate" >
+        UPDATE PRJ_SITE_INSP
+        SET LAST_CHNG_USEQ = #{lastChngUseq} 		/* 최종작업자번호 */
+            ,CHK_PASS_YN 	= #{chkPassYn}			/* 점검합격여부 */
+            ,CHK_CMPL_DT 	= #{chkCmplDt}			/* 점검완료일 */
+            ,CHK_FAIL_RSN 	= #{chkFailRsn}		/* 점검불합격사유 */
+            ,CHK_HIST 		= #{chkHist}			/* 점검이력 (점검합격여부가 N인 경우 점검불합격사유를 저장할때마다 ADD) */
+        WHERE 1=1
+        AND SITE_ID = #{siteId}			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+    </update>
+
+    <update id="mngUpdate" parameterType="com.rest.api.model.pp.SiteMngUpdate" >
+        UPDATE PRJ_SITE_CNRT
+        SET LAST_CHNG_USEQ 	= #{lastChngUseq} 	/* 최종작업자번호 */
+            , MNG_STRT_DT	= #{mngStrtDt}      /* 운영시작일 */
+        WHERE SITE_ID = #{siteId} 				/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+    </update>
+
+    <select id="siteUser" parameterType="com.rest.api.model.pp.PrjSiteUserVO" resultType="com.rest.api.model.pp.PrjSiteUserVO">
+        SELECT
+            SITE_ID  		AS siteId 		/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            ,USER_SEQ 		AS userSeq 		/* 사용자번호 */
+            ,SITE_ULVL_CD 	AS siteUlvlCd 	/* 사이트별사용자등급코드 (GRP_CD : CDK-00017) */
+        FROM PRJ_SITE_USER
+        WHERE 1=1
+        AND SITE_ID = #{siteId}
+        AND SITE_ULVL_CD = #{siteUlvlCd}        /* 사이트별사용자등급코드 */
+    </select>
+
+    <update id="siteFileDelete" parameterType="com.rest.api.model.pp.SiteFileDelete" >
+        UPDATE CMN_SITE_FILE
+        SET LAST_CHNG_USEQ 	= #{lastChngUseq} 	/* 최종작업자번호 */
+        , DEL_YN = 'Y'
+        WHERE 1=1
+        AND SITE_ID 		= #{siteId}			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        AND FILE_SRC_GUBN	= #{fileSrcGubn} 	/* 파일원천구분 */
+        AND FILE_SEQ		= #{fileSeq} 		/*파일일련번호*/
+    </update>
+
+    <select id="siteFileList" parameterType="com.rest.api.model.pp.SiteFileVO" resultType="com.rest.api.model.pp.SiteFileVO">
+        SELECT
+            PSC.SITE_ID 		    AS siteId		/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            ,CSF.FILE_SRC_GUBN	    AS fileSrcGubn  /* 파일원천구분 */
+            ,CSF.FILE_ID 			AS fileId		/* 파일ID */
+            ,CF.FILE_SEQ			AS fileSeq 		/* 파일일련번호 */
+            ,CF.REAL_FILE_NAME	    AS realFileName /* 실제파일명 */
+		    ,CF.FILE_PATH			AS filePath 	/* 파일경로 */
+        FROM PRJ_SITE_CNRT PSC
+        LEFT JOIN CMN_SITE_FILE CSF
+        ON  PSC.SITE_ID			= CSF.SITE_ID
+        AND CSF.DEL_YN			='N'
+        <if test="fileSrcGubn != null and  fileSrcGubn != ''">
+            AND CSF.FILE_SRC_GUBN = #{fileSrcGubn}
+        </if>
+        <if test="fileSrcGubn == null or  fileSrcGubn == ''">
+            AND CSF.FILE_SRC_GUBN NOT IN('7')
+        </if>
+
+        JOIN CMN_FILE CF
+        ON CSF.FILE_ID = CF.FILE_ID
+        WHERE 1=1
+        AND PSC.DEL_YN			='N'
+        AND PSC.SITE_ID 		= #{siteId}			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+    </select>
+
+    <insert id="siteInspInsert" parameterType="com.rest.api.model.pp.SiteInspInsert" >
+        INSERT INTO PRJ_SITE_INSP
+        (
+            SITE_ID				/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            ,LAST_CHNG_USEQ		/* 최종작업자번호 */
+        )
+        VALUES
+        (
+            #{siteId}				/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            ,#{lastChngUseq}		/* 최종작업자번호 */
+        )
+    </insert>
+
+    <insert id="siteFileInsert" parameterType="com.rest.api.model.pp.SiteFileInsert" >
+        INSERT INTO CMN_SITE_FILE
+        (
+            SITE_ID 				/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            ,FILE_SRC_GUBN 	/* 파일원천구분 (계약정보/계획수립/GRID신청/GRID승인/자재구매/설치 등) */
+            ,FILE_SEQ 			/* 파일일련번호 */
+            ,LAST_CHNG_USEQ 	/* 최종작업자번호 */
+            ,FILE_ID 			/* 파일ID */
+            ,DEL_YN 				/* 삭제여부 */
+        )
+        VALUES
+        (
+            #{siteId} 			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            ,#{fileSrcGubn} 	/* 파일원천구분 (계약정보/계획수립/GRID신청/GRID승인/자재구매/설치 등) */
+            ,'1'			    /* 파일일련번호 */
+            ,#{lastChngUseq} 	/* 최종작업자번호 */
+            ,#{fileId} 			/* 파일ID */
+            ,'N' 				/* 삭제여부 */
+        )
+        ON
+          DUPLICATE KEY
+       UPDATE
+          LAST_CHNG_USEQ = #{lastChngUseq}
+          ,FILE_ID = #{fileId}
+          ,DEL_YN = 'N' 				/* 삭제여부 */
+
+    </insert>
+
+
+    <update id="gridWorkDudtUpdate" parameterType="com.rest.api.model.pp.SiteGridTableUpdate" >
+        UPDATE PRJ_SITE_GRID
+        SET
+        LAST_CHNG_USEQ	= #{lastChngUseq}	/* 최종작업자번호 */
+        ,WORK_DUDT = #{workDudt}			/* 작업예정일 */
+        WHERE 1=1
+        AND SITE_ID 	= 	#{siteId}			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        AND WORK_GUBN  =  #{workGubn}			/* 작업구분 (GRID신청/GRID승인/자재구매/설치예정) */
+
+    </update>
+    <select id="getPrjProcess" parameterType="com.rest.api.model.pp.PrjSiteVO" resultType="com.rest.api.model.pp.PrjSiteVO">
+        SELECT
+            SITE_ID AS siteId,
+            PROCESS AS process
+        FROM PRJ_SITE_CNRT PSC
+        WHERE 1=1
+        AND SITE_ID = #{siteId}
+    </select>
+
+    <update id="prjProcessUpdate" parameterType="com.rest.api.model.pp.PrjSiteVO">
+        UPDATE
+            PRJ_SITE_CNRT
+        SET
+            PROCESS = #{process},
+            LAST_CHNG_USEQ = #{lastChngUseq} /* 최종사용자번호 */
+        WHERE 1=1
+        AND SITE_ID = #{siteId}
+    </update>
+    
+        <insert id="insertCmnPlant" parameterType="com.rest.api.model.pp.PrjSitePsInfoVo" >
+		        <selectKey keyProperty="plantId" resultType="String" order="AFTER">
+		            SELECT  PLANT_ID FROM CMN_PLANT ORDER BY PLANT_ID DESC LIMIT 1  
+		        </selectKey>
+			        INSERT INTO CMN_PLANT
+			        (	         	
+			         	SITE_ID,
+			         	PLANT_KEY,	         	
+			         	PLANT_TYPE,
+			         	PLANT_STATUS,
+			         	LAST_CHNG_USEQ,
+			         	TIMEZONE,
+			         	LAST_CHNG_DTTI,
+			         	LAST_STATUS_DATE
+			        )
+			        VALUES
+			        (
+			              #{siteId} 				
+			            , #{plantKey}
+			            , #{plantType} 	
+			            , 'AL0001'
+			            , '0'
+			            , 'Australia/Sydney'
+			            , now()
+			            , now() 			
+			        )
+   		 </insert>
+   		 
+   		  <insert id="insertCmnPlantFac" parameterType="com.rest.api.model.pp.PrjSitePsInfoVo" >		        
+			        INSERT INTO CMN_PLANT_FAC
+			        (	         	
+			         	PLANT_ID,
+			         	FAC_KEY,
+			         	FAC_STATUS,
+			         	FAC_PV_STATUS,
+			         	FAC_ESS_STATUS,
+			         	FAC_TYPE,
+			         	LAST_CHNG_USEQ,
+			         	LAST_CHNG_DTTI,
+			         	LAST_OPER_DATE,
+			         	LAST_STATUS_DATE
+			        )
+			        VALUES
+			        (
+			              #{plantId} 				
+			            , #{facKey}
+			            , 'AL0001'
+			            , 'OPP001'
+			            , 'OPE002'
+			            , 'B'
+			            , '0'
+			            , now()
+			            , now()
+			            , now() 			
+			        )
+   		 </insert>
+   		 
+   		  <update id="plantTypeUpdate" parameterType="com.rest.api.model.pp.PrjSitePsInfoVo">
+   		  <selectKey keyProperty="plantId" resultType="String" order="AFTER">
+		            SELECT  PLANT_ID FROM CMN_PLANT  WHERE  SITE_ID = #{siteId}
+		     </selectKey>
+		        UPDATE
+		            CMN_PLANT
+		        SET
+		            PLANT_KEY = #{plantKey}		            
+		        WHERE 1=1
+		        AND SITE_ID = #{siteId}
+		    </update>
+		    
+		    <update id="facTypeUpdate" parameterType="com.rest.api.model.pp.PrjSitePsInfoVo">
+			        UPDATE
+			            CMN_PLANT_FAC
+			        SET
+			            FAC_KEY = #{facKey}		            
+			        WHERE 1=1
+			        AND PLANT_ID = #{plantId}			        
+			    </update>
+
+    <insert id="nectrInsert" parameterType="com.rest.api.model.pp.NectrInsert" >
+        INSERT INTO CMN_NECTR
+        (
+            NECTR_USER_ID
+            , SITE_ID 				/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            , USER_SEQ 		    /* 사용자번호 */
+            , LAST_CHNG_USEQ 		/* 최종작업자번호 */
+            , USER_NAME
+            , TEL_NO
+            , EMAIL
+            , ADDR 					/* 주소 */
+            , REGN_GUBN
+            , PPA_STRT_DT
+            , PPA_END_DT
+            , RESC_GUBN
+            , INSTALLER_NAME
+            , MODL_CAPA
+            , BTRY_CAPA
+            , NOTE 					
+            , DEL_YN 				/* 삭제여부 */
+        )
+        VALUES
+        (
+            #{nectrId}
+            , #{siteId}
+            , #{userSeq}
+            , #{lastChngUseq}
+            , #{userName}
+            , #{telNo}
+            , #{email}
+            , #{addr}
+            , #{regnGubn}
+            , #{ppaStrtDt}
+            , #{ppaEndDt}
+            , IFNULL(#{rescGubn},'A')				
+            , #{installerName}
+            , #{modlCapa}
+            , #{btryCapa}
+            , #{note}
+            , 'N' 					/* 삭제여부 */
+        )
+    </insert>
+
+    <update id="nectrUpdate" parameterType="com.rest.api.model.pp.NectrUpdate" >
+            UPDATE CMN_NECTR
+            SET LAST_CHNG_USEQ = #{lastChngUseq} 
+            <if test="userName != null and  userName != ''">
+            , USER_NAME = #{userName}
+            </if>
+            <if test="telNo != null and  telNo != ''">
+            , TEL_NO = #{telNo}
+            </if>
+            <if test="email != null and  email != ''">
+            , EMAIL = #{email}
+            </if>
+            <if test="addr != null and  addr != ''">
+            , ADDR = #{addr}				/* 주소 */
+            </if>
+            <if test="regnGubn != null and  regnGubn != ''">
+            , REGN_GUBN = #{regnGubn} 	
+            </if>
+            <if test="ppaStrtDt != null and  ppaStrtDt != ''">
+            , PPA_STRT_DT = #{ppaStrtDt}
+            </if>
+            <if test="ppaEndDt != null and  ppaEndDt != ''">
+            , PPA_END_DT = #{ppaEndDt}
+            </if>
+            <!-- <if test="ppaPrice != null and  ppaPrice != ''">
+            , PPA_PRICE = #{ppaPrice}
+            </if>
+            <if test="stc != null and  stc != ''">
+            , STC = #{stc} 	
+            </if> -->
+            <if test="rescGubn != null and  rescGubn != ''">
+            , RESC_GUBN = #{rescGubn} 	
+            </if>
+            <if test="installerName != null and  installerName != ''">
+            , INSTALLER_NAME = #{installerName}
+            </if>
+            <if test="modlCapa != null and  modlCapa != ''">
+            , MODL_CAPA = #{modlCapa}
+            </if>
+            <if test="btryCapa != null and  btryCapa != ''">
+            , BTRY_CAPA = #{btryCapa}
+            </if>
+            <if test="note != null and  note != ''">
+            , NOTE 	= #{note}				
+            </if>
+            WHERE 1=1
+            AND SITE_ID = #{siteId}     /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            AND DEL_YN = 'N'
+    </update>
+
+    <update id="nectrPSCUpdate" parameterType="com.rest.api.model.pp.NectrUpdate" >
+            UPDATE PRJ_SITE_CNRT
+            SET LAST_CHNG_USEQ = #{lastChngUseq} 
+            <if test="addr != null and  addr != ''">
+            , ADDR = #{addr}				/* 주소 */
+            </if>
+            <if test="regnGubn != null and  regnGubn != ''">
+            , REGN_GUBN = #{regnGubn} 	
+            </if>
+            <if test="ppaStrtDt != null and  ppaStrtDt != ''">
+            , CNRT_STRT_DT = #{ppaStrtDt}
+            </if>
+            <if test="ppaEndDt != null and  ppaEndDt != ''">
+            , CNRT_END_DT = #{ppaEndDt}
+            </if>
+            <!-- <if test="ppaPrice != null and  ppaPrice != ''">
+            , PPA_UNIT_PRCE = #{ppaPrice}
+            </if>
+            <if test="stc != null and  stc != ''">
+            , STC = #{stc} 	
+            </if> -->
+            <if test="rescGubn != null and  rescGubn != ''">
+            , RESC_GUBN = #{rescGubn} 	
+            </if>
+            <if test="modlCapa != null and  modlCapa != ''">
+            , PV_INST_CAPA = #{modlCapa}
+            </if>
+            <if test="btryCapa != null and  btryCapa != ''">
+            , ESS_INST_CAPA = #{btryCapa}
+            </if>			
+            WHERE 1=1
+            AND SITE_ID = #{siteId}     /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            AND DEL_YN = 'N'
+    </update>
+
+    <update id="nectrPSUUpdate" parameterType="com.rest.api.model.pp.NectrUpdate" >
+            UPDATE PRJ_SITE_USER
+            SET LAST_CHNG_USEQ = #{lastChngUseq} 
+            <if test="installerName != null and  installerName != ''">
+            , USER_SEQ = #{installerName}
+            </if>			
+            WHERE 1=1
+            AND SITE_ID = #{siteId}     /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            AND SITE_ULVL_CD='ACN003'
+    </update>
+
+    <update id="nectrCUUpdate" parameterType="com.rest.api.model.pp.NectrUpdate" >
+        <selectKey keyProperty="userSeq" resultType="String" order="BEFORE">
+            SELECT USER_SEQ FROM CMN_NECTR  WHERE  SITE_ID = #{siteId}        
+        </selectKey>
+            UPDATE CMN_USER
+            SET LAST_CHNG_USEQ = #{lastChngUseq}
+            <if test="userName != null and  userName != ''">
+            , USER_NAME = #{userName}
+            </if>
+            <if test="telNo != null and  telNo != ''">
+            , TEL_NO = #{telNo}
+            </if>
+            <if test="email != null and  email != ''">
+            , EMAIL = #{email}		
+            </if>
+            WHERE 1=1
+            AND USER_SEQ = #{userSeq}     /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            AND DEL_YN = 'N'
+    </update>
+
+    <update id="nectrDelete" parameterType="com.rest.api.model.pp.NectrDelete" >
+        UPDATE CMN_NECTR
+        SET LAST_CHNG_USEQ = #{lastChngUseq}
+        , TERM_DT=#{termDt}
+        <if test="termRsn != null and  termRsn != ''">
+        , TERM_RSN=#{termRsn}
+        </if>
+        , DEL_YN = 'Y'
+        where 1=1
+        AND SITE_ID = #{siteId}     /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+
+    </update>
+
+</mapper>
+
+

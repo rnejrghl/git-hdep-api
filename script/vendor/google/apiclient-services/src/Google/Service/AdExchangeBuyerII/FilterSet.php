@@ -1,0 +1,181 @@
+<?php
+/*
+ * Copyright 2014 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+
+class Google_Service_AdExchangeBuyerII_FilterSet extends Google_Collection
+{
+  public $breakdownDimensions;
+  public $creativeId;
+  public $dealId;
+  public $environment;
+  public $formats;
+  public $name;
+  public $platforms;
+  public $publisherIdentifiers;
+  public $sellerNetworkIds;
+  public $timeSeriesGranularity;
+  protected $collection_key = 'sellerNetworkIds';
+  protected $absoluteDateRangeType = 'Google_Service_AdExchangeBuyerII_AbsoluteDateRange';
+  protected $absoluteDateRangeDataType = '';
+  protected $realtimeTimeRangeType = 'Google_Service_AdExchangeBuyerII_RealtimeTimeRange';
+  protected $realtimeTimeRangeDataType = '';
+  protected $relativeDateRangeType = 'Google_Service_AdExchangeBuyerII_RelativeDateRange';
+  protected $relativeDateRangeDataType = '';
+
+  /**
+   * @param Google_Service_AdExchangeBuyerII_AbsoluteDateRange
+   */
+  public function setAbsoluteDateRange(Google_Service_AdExchangeBuyerII_AbsoluteDateRange $absoluteDateRange)
+  {
+    $this->absoluteDateRange = $absoluteDateRange;
+  }
+  /**
+   * @return Google_Service_AdExchangeBuyerII_AbsoluteDateRange
+   */
+  public function getAbsoluteDateRange()
+  {
+    return $this->absoluteDateRange;
+  }
+
+  public function getBreakdownDimensions()
+  {
+    return $this->breakdownDimensions;
+  }
+
+  public function setBreakdownDimensions($breakdownDimensions)
+  {
+    $this->breakdownDimensions = $breakdownDimensions;
+  }
+
+  public function getCreativeId()
+  {
+    return $this->creativeId;
+  }
+
+  public function setCreativeId($creativeId)
+  {
+    $this->creativeId = $creativeId;
+  }
+
+  public function getDealId()
+  {
+    return $this->dealId;
+  }
+
+  public function setDealId($dealId)
+  {
+    $this->dealId = $dealId;
+  }
+
+  public function getEnvironment()
+  {
+    return $this->environment;
+  }
+
+  public function setEnvironment($environment)
+  {
+    $this->environment = $environment;
+  }
+
+  public function getFormats()
+  {
+    return $this->formats;
+  }
+
+  public function setFormats($formats)
+  {
+    $this->formats = $formats;
+  }
+
+  public function getName()
+  {
+    return $this->name;
+  }
+
+  public function setName($name)
+  {
+    $this->name = $name;
+  }
+
+  public function getPlatforms()
+  {
+    return $this->platforms;
+  }
+
+  public function setPlatforms($platforms)
+  {
+    $this->platforms = $platforms;
+  }
+
+  public function getPublisherIdentifiers()
+  {
+    return $this->publisherIdentifiers;
+  }
+
+  public function setPublisherIdentifiers($publisherIdentifiers)
+  {
+    $this->publisherIdentifiers = $publisherIdentifiers;
+  }
+
+  /**
+   * @param Google_Service_AdExchangeBuyerII_RealtimeTimeRange
+   */
+  public function setRealtimeTimeRange(Google_Service_AdExchangeBuyerII_RealtimeTimeRange $realtimeTimeRange)
+  {
+    $this->realtimeTimeRange = $realtimeTimeRange;
+  }
+  /**
+   * @return Google_Service_AdExchangeBuyerII_RealtimeTimeRange
+   */
+  public function getRealtimeTimeRange()
+  {
+    return $this->realtimeTimeRange;
+  }
+  /**
+   * @param Google_Service_AdExchangeBuyerII_RelativeDateRange
+   */
+  public function setRelativeDateRange(Google_Service_AdExchangeBuyerII_RelativeDateRange $relativeDateRange)
+  {
+    $this->relativeDateRange = $relativeDateRange;
+  }
+  /**
+   * @return Google_Service_AdExchangeBuyerII_RelativeDateRange
+   */
+  public function getRelativeDateRange()
+  {
+    return $this->relativeDateRange;
+  }
+
+  public function getSellerNetworkIds()
+  {
+    return $this->sellerNetworkIds;
+  }
+
+  public function setSellerNetworkIds($sellerNetworkIds)
+  {
+    $this->sellerNetworkIds = $sellerNetworkIds;
+  }
+
+  public function getTimeSeriesGranularity()
+  {
+    return $this->timeSeriesGranularity;
+  }
+
+  public function setTimeSeriesGranularity($timeSeriesGranularity)
+  {
+    $this->timeSeriesGranularity = $timeSeriesGranularity;
+  }
+}

@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.rest.api.service.so.RscGrpMapper">
+    <select id="rscGrps" parameterType="com.rest.api.model.so.SiteRscGrpVO"  resultType="com.rest.api.model.so.RscGrpVO">
+
+            SELECT
+            RSC_GRP_ID 			AS rscGrpId		 /* 자원그룹ID */
+            ,RSC_GRP_NAME 		AS rscGrpName	 /* 자원그룹명 */
+            ,TRDB_STRT_DT 		AS trdbStrtDt	 /* 거래가능시작일 */
+            ,TRDB_END_DT 		AS trdbEndDt	 /* 거래가능종료일 */
+            ,RSC_STAT_CD 		AS rscStatCd	 /* 자원상태구분 (개시 : I(Initiate) / 말소 : C(Cancellation)) */
+            FROM RSC_GRP
+            WHERE 1=1
+            AND DEL_YN = 'N'
+
+            <if test="rscGrpId != null and  rscGrpId != ''">
+                AND RSC_GRP_ID = #{rscGrpId}
+            </if>
+            <if test="rscGrpName != null and  rscGrpName != ''">
+                AND RSC_GRP_NAME = #{rscGrpName}
+            </if>
+            <if test="trdbStrtDt != null and  trdbStrtDt != ''">
+                AND TRDB_STRT_DT >= #{trdbStrtDt}
+            </if>
+            <if test="trdbEndDt != null and  trdbEndDt != ''">
+                <![CDATA[
+                AND TRDB_END_DT <= #{trdbEndDt}
+                ]]>
+            </if>
+            <if test="rscStatCd != null and  rscStatCd != ''">
+                AND RSC_STAT_CD = #{rscStatCd}
+            </if>
+
+    </select>
+    <select id="rscGrpsExcel" parameterType="com.rest.api.model.so.SiteRscGrpVO"  resultType="com.rest.api.model.so.RscGrpVO">
+
+        SELECT
+        RSC_GRP_ID 			AS rscGrpId		 /* 자원그룹ID */
+        ,RSC_GRP_NAME 		AS rscGrpName	 /* 자원그룹명 */
+        ,TRDB_STRT_DT 		AS trdbStrtDt	 /* 거래가능시작일 */
+        ,TRDB_END_DT 		AS trdbEndDt	 /* 거래가능종료일 */
+        ,(CASE
+            WHEN RSC_STAT_CD = 'I'
+            THEN 'Initiate'
+            WHEN RSC_STAT_CD = 'C'
+            THEN 'Cancellation'
+            ELSE ''
+        END) AS rscStatCd	 /* 자원상태구분 (개시 : I(Initiate) / 말소 : C(Cancellation)) */
+        FROM RSC_GRP
+        WHERE 1=1
+        AND DEL_YN = 'N'
+
+        <if test="rscGrpId != null and  rscGrpId != ''">
+            AND RSC_GRP_ID = #{rscGrpId}
+        </if>
+        <if test="rscGrpName != null and  rscGrpName != ''">
+            AND RSC_GRP_NAME = #{rscGrpName}
+        </if>
+        <if test="trdbStrtDt != null and  trdbStrtDt != ''">
+            AND TRDB_STRT_DT >= #{trdbStrtDt}
+        </if>
+        <if test="trdbEndDt != null and  trdbEndDt != ''">
+            <![CDATA[
+                AND TRDB_END_DT <= #{trdbEndDt}
+                ]]>
+        </if>
+        <if test="rscStatCd != null and  rscStatCd != ''">
+            AND RSC_STAT_CD = #{rscStatCd}
+        </if>
+
+    </select>
+
+    <select id="siteRscGrpsList" parameterType="com.rest.api.model.so.SiteRscGrpVO" resultType="com.rest.api.model.so.SiteRscGrpVO">
+        SELECT
+        RGU.RSC_GRP_ID 		AS rscGrpId		/* 자원그룹ID */
+        ,PSC.SITE_ID 		AS siteId		/* 사이트ID */
+        ,CU.USER_SEQ 		AS userSeq		/* 사용자번호 */
+        ,CU.USER_NAME 		AS userName		/* 사용자명 */
+        ,PSC.RESC_GUBN 		AS rescGubn		/* 자원구분 */
+        ,PSC.REGN_GUBN 		AS regnGubn		/* 지역구분 */
+        ,PSC.PV_INST_CAPA 	AS pvInstCapa  /*PV설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+        ,PSC.ESS_INST_CAPA 	AS essInstCapa /*ESS설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+        ,PSC.CNRT_STRT_DT	AS cnrtStrtDt	/* 계약시작일 */
+        ,PSC.CNRT_END_DT	AS cnrtEndDt	/* 계약종료일 */
+        FROM PRJ_SITE_CNRT PSC
+        JOIN RSC_GRP_USER RGU
+        ON RGU.SITE_ID = PSC.SITE_ID
+        AND RGU.CNRT_STRT_DT = DATE_FORMAT(NOW(), '%Y%m%d')
+        <if test="regnGubn != null and  regnGubn != ''">
+            AND PSC.REGN_GUBN = #{regnGubn}
+        </if>
+        <if test="cnrtDt != null and  cnrtDt != ''">
+            <![CDATA[
+            AND PSC.CNRT_STRT_DT <= #{cnrtDt}
+            AND PSC.CNRT_END_DT  >= #{cnrtDt}
+            ]]>
+        </if>
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        LEFT JOIN CMN_USER CU
+        ON (CU.USER_SEQ = PSU.USER_SEQ
+        <if test="userName != null and  userName != ''">
+            AND CU.USER_NAME LIKE CONCAT('%', #{userName},'%')
+        </if>
+        )
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        AND (PSC.TERM_DT >= DATE_FORMAT(NOW(), '%Y%m%d') OR PSC.TERM_DT IS NULL)
+        <if test="rscGrpId != null and  rscGrpId != ''">
+            AND RGU.RSC_GRP_ID = #{rscGrpId}
+        </if>
+        <if test="siteId != null and  siteId != ''">
+            AND PSC.SITE_ID LIKE CONCAT('%', #{siteId},'%')
+        </if>
+
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        ORDER BY SUBSTRING(PSC.SITE_ID,8,11) DESC
+
+    </select>
+    <select id="rscGrpUserHisList"  resultType="com.rest.api.model.so.RscGrpUserHisVO">
+        SELECT
+            USER_SEQ 		AS userSeq 		/* 사용자번호 */
+            ,RSC_GRP_ID 	AS rscGrpId 	/* 자원그룹ID */
+            ,CNRT_END_DT 	AS cnrtEndDt 	/* 계약종료일 */
+            ,CNRT_STRT_DT 	AS cnrtStrtDt 	/* 계약시작일 */
+            ,SITE_ID 	    AS siteId 	    /* 사이트ID */
+        FROM RSC_GRP_USER
+        WHERE 1=1
+        AND USER_SEQ = #{userSeq}
+        AND SITE_ID = #{siteId}
+        <if test="rscGrpId != null and  rscGrpId != ''">
+            AND RSC_GRP_ID = #{rscGrpId}
+        </if>
+        <if test="cnrtStrtDt != null and  cnrtStrtDt != ''">
+            AND CNRT_STRT_DT >= #{cnrtStrtDt}
+        </if>
+        <if test="cnrtEndDt != null and  cnrtEndDt != ''">
+           <![CDATA[
+            AND CNRT_END_DT <= #{cnrtEndDt}
+            ]]>
+        </if>
+
+    </select>
+    <select id="rscGrpUserList"  resultType="com.rest.api.model.so.RscGrpUserHisVO">
+          SELECT
+            us.USER_SEQ 		AS userSeq 		/* 사용자번호 */
+            ,cu.USER_NAME 		AS userName 		/* 사용자명 */
+            ,us.RSC_GRP_ID 	AS rscGrpId 	/* 자원그룹ID */
+            ,us.SITE_ID AS siteId /* 사이트ID */
+        FROM RSC_GRP_USER us
+            LEFT OUTER JOIN CMN_USER cu ON us.USER_SEQ = cu.USER_SEQ
+        WHERE 1=1
+        GROUP BY us.SITE_ID
+    </select>
+
+    <select id="rscGrpIdChk" parameterType="String"  resultType="Integer">
+        SELECT
+            COUNT(RSC_GRP_ID) AS cnt
+        FROM RSC_GRP
+        WHERE 1=1
+        AND RSC_GRP_ID = #{rscGrpId}
+    </select>
+
+    <insert id="rscGrpInsert" parameterType="com.rest.api.model.so.RscGrpInsert">
+        INSERT INTO RSC_GRP
+        (
+            RSC_GRP_ID 			/* 자원그룹ID */
+            ,LAST_CHNG_USEQ 	/* 최종작업자번호*/
+            ,RSC_GRP_NAME	 	/* 자원그룹명 */
+            ,TRDB_STRT_DT	 	/* 거래가능시작일 */
+            ,TRDB_END_DT	 	/* 거래가능종료일 */
+            ,RSC_STAT_CD	 	/* 자원상태구분 (개시 : I(Initiate) / 말소 : C(Cancellation)) */
+            ,DEL_YN 			/*삭제여부*/
+
+        )
+        VALUES
+        (
+            #{rscGrpId}		 /* 자원그룹ID */
+            ,#{lastChngUseq} /* 최종작업자번호 */
+            ,#{rscGrpName}	 /* 자원그룹명 */
+            ,#{trdbStrtDt}	 /* 거래가능시작일 */
+            ,#{trdbEndDt}	 /* 거래가능종료일 */
+            ,#{rscStatCd}	 /* 자원상태구분 (개시 : I(Initiate) / 말소 : C(Cancellation)) */
+            ,'N'
+        )
+
+    </insert>
+
+    <update id="rscGrpUpdate" parameterType="com.rest.api.model.so.RscGrpUpdate">
+        UPDATE RSC_GRP
+        SET LAST_CHNG_USEQ = #{lastChngUseq}	/* 최종작업자번호 */
+        	,RSC_GRP_NAME 	= #{rscGrpName}	    /* 자원그룹명 */
+	        ,TRDB_STRT_DT   = #{trdbStrtDt}	    /* 거래가능시작일 */
+            ,TRDB_END_DT 	= #{trdbEndDt}	    /* 거래가능종료일 */
+            ,RSC_STAT_CD 	= #{rscStatCd}	    /* 자원상태구분 (개시 : I(Initiate) / 말소 : C(Cancellation)) */
+        WHERE 1=1
+        AND RSC_GRP_ID = #{rscGrpId}
+        AND DEL_YN = 'N'
+    </update>
+
+
+    <update id="rscGrpDelete" parameterType="com.rest.api.model.so.RscGrpDelete">
+        UPDATE RSC_GRP
+        SET LAST_CHNG_USEQ = #{lastChngUseq}	/* 최종작업자번호 */
+            ,DEL_YN 	= 'Y'	    /* 자원상태구분 (개시 : I(Initiate) / 말소 : C(Cancellation)) */
+        WHERE 1=1
+        AND RSC_GRP_ID = #{rscGrpId}
+        AND DEL_YN = 'N'
+    </update>
+
+    <insert id="rscGrpUserInsert" parameterType="com.rest.api.model.so.RscGrpUserInsert">
+        INSERT INTO RSC_GRP_USER
+        (
+            USER_SEQ 			/* 사용자번호 */
+            ,RSC_GRP_ID 	    /* 자원그룹ID*/
+            ,SITE_ID 	 	    /* 사이트ID */
+            ,LAST_CHNG_USEQ 	/* 최종작업자번호 */
+            ,CNRT_END_DT 	 	/* 계약종료일 */
+            ,CNRT_STRT_DT 	 	/* 계약시작일 */
+
+        )
+        VALUES
+        (
+            #{userSeq} 			/* 사용자번호 */
+            ,#{rscGrpId} 	    /* 자원그룹ID*/
+            ,#{siteId} 	 	    /* 사이트ID */
+            ,#{lastChngUseq} 	/* 최종작업자번호 */
+            ,#{cnrtEndDt} 	 	/* 계약종료일 */
+            ,#{cnrtStrtDt} 	 	/* 계약시작일 */
+        )
+
+    </insert>
+
+    <update id="rscGrpUserHisUpdate" parameterType="com.rest.api.model.so.RscGrpUserUpdate">
+        UPDATE RSC_GRP_USER
+        SET LAST_CHNG_USEQ = #{lastChngUseq}	/* 최종작업자번호 */
+            ,RSC_GRP_ID 	= #{rscGrpId}	    /* 자원그룹ID */
+        WHERE 1=1
+        AND SITE_ID = #{siteId}
+        AND CNRT_STRT_DT BETWEEN #{cnrtStrtDt} AND #{cnrtEndDt}
+
+    </update>
+
+</mapper>
