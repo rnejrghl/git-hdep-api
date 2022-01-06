@@ -1,0 +1,942 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.rest.api.service.db.DbMapper">
+
+    <select id="siteOpeStas" parameterType="com.rest.api.model.db.DbVO" resultType="com.rest.api.model.db.DbVO">
+        SELECT
+        siteId 			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        ,addr 			/* 사이트 주소 */
+        ,rescGubn			/* 자원구분 */
+        ,pvInstCapa		/*PV설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 ))*/
+        ,essInstCapa		/* ESS설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+        ,modlMnftGubn	    /* 모듈제조사구분 (코드ID : CDK-00006) */
+        ,invtMnftGubn	    /* 인버터제조사구분 (코드ID : CDK-00007) */
+        ,btryMnftGubn	    /* 배터리제조사구분 (코드ID : CDK-00008) */
+        ,userName			/* 사용자명 */
+        ,workOrderUcmplCnt
+
+        FROM(
+        SELECT
+        PSC.SITE_ID 			AS siteId 			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        ,PSC.ADDR 				AS addr 			/* 사이트 주소 */
+        ,PSC.RESC_GUBN			AS rescGubn			/* 자원구분 */
+        ,PSC.PV_INST_CAPA		AS pvInstCapa		/*PV설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 ))*/
+        ,PSC.ESS_INST_CAPA		AS essInstCapa		/* ESS설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+        ,PSP.MODL_MNFT_GUBN	    AS modlMnftGubn	    /* 모듈제조사구분 (코드ID : CDK-00006) */
+        ,PSP.INVT_MNFT_GUBN	    AS invtMnftGubn	    /* 인버터제조사구분 (코드ID : CDK-00007) */
+        ,PSP.BTRY_MNFT_GUBN	    AS btryMnftGubn	    /* 배터리제조사구분 (코드ID : CDK-00008) */
+        ,CU.USER_NAME			AS userName			/* 사용자명 */
+        ,(SELECT COUNT(*) FROM MTN_WKOD_HIST MWH WHERE MWH.SITE_ID = PSC.SITE_ID AND MWH.WORK_ORD_STAT != 'WS0004') AS workOrderUcmplCnt
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD = 'ACN005' )
+        JOIN CMN_USER CU
+        ON (CU.USER_SEQ = PSU.USER_SEQ)
+        JOIN PRJ_SITE_PLAN PSP
+        ON (PSC.SITE_ID = PSP.SITE_ID)
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        <![CDATA[
+        AND PSC.MNG_STRT_DT <= DATE_FORMAT(NOW(), '%Y%m%d')
+        ]]>
+        AND (PSC.TERM_DT >= DATE_FORMAT(NOW(), '%Y%m%d') OR PSC.TERM_DT IS NULL)
+        <if test="rescGubn != null and  rescGubn != '' ">
+            AND PSC.RESC_GUBN = #{rescGubn}
+        </if>
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="sites != null and  sites != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="sites" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        GROUP BY PSC.SITE_ID
+        ) AA
+        WHERE 1=1
+        <if test="userName != null and  userName != '' ">
+            AND userName LIKE CONCAT('%',#{userName},'%')
+        </if>
+
+
+    </select>
+
+    <select id="siteOpeStasInfo" parameterType="com.rest.api.model.db.DbVO" resultType="com.rest.api.model.db.DbVO">
+        SELECT
+    siteId
+    ,addr
+    ,rescGubn
+    ,regnGubn
+    ,pvInstCapa
+    ,essInstCapa
+    ,modlMnftGubn
+    ,invtMnftGubn
+    ,btryMnftGubn
+    ,userName
+    ,workOrderUcmplCnt
+    , '0' AS unrReleCnt    /* 미해제건수 */
+    ,latd
+    ,lgtd
+    FROM(SELECT
+    PSC.SITE_ID 			AS siteId 			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+    ,PSC.ADDR 				AS addr 			/* 사이트 주소 */
+    ,PSC.RESC_GUBN			AS rescGubn			/* 자원구분 */
+    ,PSC.REGN_GUBN          AS regnGubn         /* 지역구분 */
+    ,PSC.PV_INST_CAPA		AS pvInstCapa		/*PV설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 ))*/
+    ,PSC.ESS_INST_CAPA		AS essInstCapa		/* ESS설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+    ,PSP.MODL_MNFT_GUBN	    AS modlMnftGubn	    /* 모듈제조사구분 (코드ID : CDK-00006) */
+    ,PSP.INVT_MNFT_GUBN	    AS invtMnftGubn	    /* 인버터제조사구분 (코드ID : CDK-00007) */
+    ,PSP.BTRY_MNFT_GUBN	    AS btryMnftGubn	    /* 배터리제조사구분 (코드ID : CDK-00008) */
+    ,CU.USER_NAME			AS userName			/* 사용자명 */
+    ,(SELECT COUNT(*) FROM MTN_WKOD_HIST MWH WHERE MWH.SITE_ID = PSC.SITE_ID AND MWH.WORK_ORD_STAT != 'WS0004') AS workOrderUcmplCnt
+    , PSC.LATD              AS latd       /* 위도 */
+    , PSC.LGTD              AS lgtd       /* 경도 */
+    FROM PRJ_SITE_CNRT PSC
+    JOIN PRJ_SITE_USER PSU
+    ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD = 'ACN005')
+    JOIN CMN_USER CU
+    ON (CU.USER_SEQ = PSU.USER_SEQ)
+    JOIN PRJ_SITE_PLAN PSP
+    ON (PSC.SITE_ID = PSP.SITE_ID)
+    WHERE 1=1
+    AND PSC.DEL_YN = 'N'
+        <![CDATA[
+        AND PSC.MNG_STRT_DT <= DATE_FORMAT(NOW(), '%Y%m%d')
+        ]]>
+        AND (PSC.TERM_DT >= DATE_FORMAT(NOW(), '%Y%m%d') OR PSC.TERM_DT IS NULL)
+        <if test="rescGubn != null and  rescGubn != '' ">
+        AND PSC.RESC_GUBN = #{rescGubn}
+    </if>
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="sites != null and  sites != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="sites" item="item" index="index" separator=",">
+            '${item}'
+        </foreach>
+            )
+        </if>
+        )
+    GROUP BY PSC.SITE_ID
+    ) AA
+    WHERE 1= 1
+    AND siteId = #{siteId}
+    </select>
+
+
+    <select id="assetOverviewCnt" parameterType="com.rest.api.model.db.AssetOverviewVO" resultType="com.rest.api.model.db.AssetOverviewVO">
+        SELECT (aPscCnt+aInsCnt+aMngCnt+aEndCnt) AS aTotalCnt
+        ,aPscCnt
+        ,aInsCnt
+        ,aMngCnt
+        ,aEndCnt
+        ,(bPscCnt+bInsCnt+bMngCnt+bEndCnt) AS bTotalCnt
+        ,bPscCnt
+        ,bInsCnt
+        ,bMngCnt
+        ,bEndCnt
+        ,(aPscCnt+aInsCnt+aMngCnt+aEndCnt+bPscCnt+bInsCnt+bMngCnt+bEndCnt) AS totalCnt
+        FROM (
+        SELECT
+        (
+        SELECT COUNT(PSC.SITE_ID) AS pscCnt	/* 계약정보COUNT */
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        LEFT JOIN PRJ_SITE_PLAN PSP
+        ON PSC.SITE_ID = PSP.SITE_ID
+        WHERE 1=1
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        AND PSC.DEL_YN = 'N'
+        AND PSC.RESC_GUBN = 'A'
+        AND SUBSTRING(PSC.CNRT_STRT_DT,1,4) = DATE_FORMAT(NOW(),'%Y')
+        AND PSC.CNRT_STRT_DT IS NOT NULL
+        AND PSP.WKPL_CMPL_DT IS NULL
+        AND (PSC.TERM_DT >= DATE_FORMAT(NOW(), '%Y%m%d') OR PSC.TERM_DT IS NULL)
+        ) AS aPscCnt 	/* 계약정보COUNT */
+        ,(
+        SELECT COUNT(PSC.SITE_ID) AS insCnt		/* 그리드설치완료COUNT */
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        LEFT JOIN PRJ_SITE_PLAN PSP
+        ON PSC.SITE_ID = PSP.SITE_ID
+        LEFT JOIN PRJ_SITE_GRID PSG1
+        ON (PSC.SITE_ID = PSG1.SITE_ID
+        AND PSG1.WORK_GUBN = '1' /* 만약 그리드신청 코드가 1이라는 가정 */
+        )
+        LEFT JOIN PRJ_SITE_GRID PSG2
+        ON (PSC.SITE_ID = PSG2.SITE_ID
+        AND PSG2.WORK_GUBN = '2' /* 만약 그리드승인 코드가 2이라는 가정 */
+        )
+        LEFT JOIN PRJ_SITE_GRID PSG3
+        ON (PSC.SITE_ID = PSG3.SITE_ID
+        AND PSG3.WORK_GUBN = '3' /* 만약 자재구매 코드가 3이라는 가정 */
+        )
+        LEFT JOIN PRJ_SITE_GRID PSG4
+        ON (PSC.SITE_ID = PSG4.SITE_ID
+        AND PSG4.WORK_GUBN = '4' /* 만약 설치 코드가 4이라는 가정 */
+        )
+        LEFT JOIN PRJ_SITE_INSP PSI
+        ON (PSC.SITE_ID = PSI.SITE_ID)
+        WHERE 1=1
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        AND PSC.DEL_YN = 'N'
+        AND PSC.RESC_GUBN = 'A'
+        AND SUBSTRING(PSC.CNRT_STRT_DT,1,4) = DATE_FORMAT(NOW(),'%Y')
+        AND PSC.CNRT_STRT_DT IS NOT NULL
+        AND PSP.WKPL_CMPL_DT IS NOT NULL
+        AND PSC.EXPN_DT IS NOT NULL
+        AND PSG1.WORK_CMDT IS NOT NULL 		/* 신청완료일 */
+        AND PSG2.WORK_CMDT IS NOT NULL 		/* 승인완료일 */
+        AND PSG3.WORK_CMDT IS NOT NULL 		/* 자재구매완료일 */
+        AND PSG4.WORK_CMDT IS NOT NULL 			/* 설치완료일 */
+        AND PSI.CHK_CMPL_DT IS NULL
+        AND (PSC.TERM_DT >= DATE_FORMAT(NOW(), '%Y%m%d') OR PSC.TERM_DT IS NULL)
+        ) AS aInsCnt		/* 그리드설치완료COUNT */
+        ,(
+        SELECT COUNT(PSC.SITE_ID) AS mngCnt	/* 운영완료COUNT */
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        LEFT JOIN PRJ_SITE_PLAN PSP
+        ON PSC.SITE_ID = PSP.SITE_ID
+        LEFT JOIN PRJ_SITE_GRID PSG1
+        ON (PSC.SITE_ID = PSG1.SITE_ID
+        AND PSG1.WORK_GUBN = '1' /* 만약 그리드신청 코드가 1이라는 가정 */
+        )
+        LEFT JOIN PRJ_SITE_GRID PSG2
+        ON (PSC.SITE_ID = PSG2.SITE_ID
+        AND PSG2.WORK_GUBN = '2' /* 만약 그리드승인 코드가 2이라는 가정 */
+        )
+        LEFT JOIN PRJ_SITE_GRID PSG3
+        ON (PSC.SITE_ID = PSG3.SITE_ID
+        AND PSG3.WORK_GUBN = '3' /* 만약 자재구매 코드가 3이라는 가정 */
+        )
+        LEFT JOIN PRJ_SITE_GRID PSG4
+        ON (PSC.SITE_ID = PSG4.SITE_ID
+        AND PSG4.WORK_GUBN = '4' /* 만약 설치 코드가 4이라는 가정 */
+        )
+        LEFT JOIN PRJ_SITE_INSP PSI
+        ON (PSC.SITE_ID = PSI.SITE_ID)
+
+        WHERE 1=1
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        AND PSC.DEL_YN = 'N'
+        AND PSC.RESC_GUBN = 'A'
+        AND PSC.CNRT_STRT_DT IS NOT NULL
+        AND PSP.WKPL_CMPL_DT IS NOT NULL
+        AND PSC.EXPN_DT IS NOT NULL
+        AND PSG1.WORK_CMDT IS NOT NULL 		/* 신청완료일 */
+        AND PSG2.WORK_CMDT IS NOT NULL 		/* 승인완료일 */
+        AND PSG3.WORK_CMDT IS NOT NULL 		/* 자재구매완료일 */
+        AND PSG4.WORK_CMDT IS NOT NULL 		/* 설치완료일 */
+        AND PSI.CHK_CMPL_DT IS NOT NULL		/* 점검완료일 */
+        AND PSC.MNG_STRT_DT IS NOT NULL		/* 운영시작일 */
+        <![CDATA[
+        AND PSC.MNG_STRT_DT <= DATE_FORMAT(NOW(), '%Y%m%d')
+        ]]>
+        AND (PSC.TERM_DT >= DATE_FORMAT(NOW(), '%Y%m%d') OR PSC.TERM_DT IS NULL)
+        ) AS aMngCnt	/*운영완료COUNT */
+        ,(
+        SELECT COUNT(PSC.SITE_ID) AS endCnt	/* 종료COUNT */
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        <![CDATA[
+            WHERE 1=1
+            AND (PSC.TERM_DT >= DATE_FORMAT(NOW(), '%Y%m%d') OR PSC.TERM_DT IS NULL)
+        ]]>
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        AND PSC.RESC_GUBN = 'A'
+        AND SUBSTRING(PSC.CNRT_STRT_DT,1,4) = DATE_FORMAT(NOW(),'%Y')
+        AND PSC.DEL_YN = 'N'
+        ) AS aEndCnt	/* 종료COUNT */
+
+        ,(
+        SELECT COUNT(PSC.SITE_ID) AS pscCnt	/* 계약정보COUNT */
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        LEFT JOIN PRJ_SITE_PLAN PSP
+        ON PSC.SITE_ID = PSP.SITE_ID
+        WHERE 1=1
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        AND PSC.DEL_YN = 'N'
+        AND PSC.RESC_GUBN = 'B'
+        AND SUBSTRING(PSC.CNRT_STRT_DT,1,4) = DATE_FORMAT(NOW(),'%Y')
+        AND PSC.CNRT_STRT_DT IS NOT NULL
+        AND PSP.WKPL_CMPL_DT IS NULL
+        AND (PSC.TERM_DT >= DATE_FORMAT(NOW(), '%Y%m%d') OR PSC.TERM_DT IS NULL)
+        ) AS bPscCnt 	/* 계약정보COUNT */
+        ,(
+        SELECT COUNT(PSC.SITE_ID) AS insCnt		/* 그리드설치완료COUNT */
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        LEFT JOIN PRJ_SITE_PLAN PSP
+        ON PSC.SITE_ID = PSP.SITE_ID
+        LEFT JOIN PRJ_SITE_GRID PSG1
+        ON (PSC.SITE_ID = PSG1.SITE_ID
+        AND PSG1.WORK_GUBN = '1' /* 만약 그리드신청 코드가 1이라는 가정 */
+        )
+        LEFT JOIN PRJ_SITE_GRID PSG2
+        ON (PSC.SITE_ID = PSG2.SITE_ID
+        AND PSG2.WORK_GUBN = '2' /* 만약 그리드승인 코드가 2이라는 가정 */
+        )
+        LEFT JOIN PRJ_SITE_GRID PSG3
+        ON (PSC.SITE_ID = PSG3.SITE_ID
+        AND PSG3.WORK_GUBN = '3' /* 만약 자재구매 코드가 3이라는 가정 */
+        )
+        LEFT JOIN PRJ_SITE_GRID PSG4
+        ON (PSC.SITE_ID = PSG4.SITE_ID
+        AND PSG4.WORK_GUBN = '4' /* 만약 설치 코드가 4이라는 가정 */
+        )
+        LEFT JOIN PRJ_SITE_INSP PSI
+        ON (PSC.SITE_ID = PSI.SITE_ID)
+        WHERE 1=1
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        AND PSC.DEL_YN = 'N'
+        AND PSC.RESC_GUBN = 'B'
+        AND SUBSTRING(PSC.CNRT_STRT_DT,1,4) = DATE_FORMAT(NOW(),'%Y')
+        AND PSC.CNRT_STRT_DT IS NOT NULL
+        AND PSP.WKPL_CMPL_DT IS NOT NULL
+        AND PSC.EXPN_DT IS NOT NULL
+        AND PSG1.WORK_CMDT IS NOT NULL 		/* 신청완료일 */
+        AND PSG2.WORK_CMDT IS NOT NULL 		/* 승인완료일 */
+        AND PSG3.WORK_CMDT IS NOT NULL 		/* 자재구매완료일 */
+        AND PSG4.WORK_CMDT IS NOT NULL 			/* 설치완료일 */
+        AND PSI.CHK_CMPL_DT IS NULL
+        AND (PSC.TERM_DT >= DATE_FORMAT(NOW(), '%Y%m%d') OR PSC.TERM_DT IS NULL)
+        ) AS bInsCnt		/* 그리드설치완료COUNT */
+        ,(
+        SELECT COUNT(PSC.SITE_ID) AS mngCnt	/* 운영완료COUNT */
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        LEFT JOIN PRJ_SITE_PLAN PSP
+        ON PSC.SITE_ID = PSP.SITE_ID
+        LEFT JOIN PRJ_SITE_GRID PSG1
+        ON (PSC.SITE_ID = PSG1.SITE_ID
+        AND PSG1.WORK_GUBN = '1' /* 만약 그리드신청 코드가 1이라는 가정 */
+        )
+        LEFT JOIN PRJ_SITE_GRID PSG2
+        ON (PSC.SITE_ID = PSG2.SITE_ID
+        AND PSG2.WORK_GUBN = '2' /* 만약 그리드승인 코드가 2이라는 가정 */
+        )
+        LEFT JOIN PRJ_SITE_GRID PSG3
+        ON (PSC.SITE_ID = PSG3.SITE_ID
+        AND PSG3.WORK_GUBN = '3' /* 만약 자재구매 코드가 3이라는 가정 */
+        )
+        LEFT JOIN PRJ_SITE_GRID PSG4
+        ON (PSC.SITE_ID = PSG4.SITE_ID
+        AND PSG4.WORK_GUBN = '4' /* 만약 설치 코드가 4이라는 가정 */
+        )
+        LEFT JOIN PRJ_SITE_INSP PSI
+        ON (PSC.SITE_ID = PSI.SITE_ID)
+
+        WHERE 1=1
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        AND PSC.DEL_YN = 'N'
+        AND PSC.RESC_GUBN = 'B'
+        AND SUBSTRING(PSC.CNRT_STRT_DT,1,4) = DATE_FORMAT(NOW(),'%Y')
+        AND PSC.CNRT_STRT_DT IS NOT NULL
+        AND PSP.WKPL_CMPL_DT IS NOT NULL
+        AND PSC.EXPN_DT IS NOT NULL
+        AND PSG1.WORK_CMDT IS NOT NULL 		/* 신청완료일 */
+        AND PSG2.WORK_CMDT IS NOT NULL 		/* 승인완료일 */
+        AND PSG3.WORK_CMDT IS NOT NULL 		/* 자재구매완료일 */
+        AND PSG4.WORK_CMDT IS NOT NULL 		/* 설치완료일 */
+        AND PSI.CHK_CMPL_DT IS NOT NULL		/* 점검완료일 */
+        AND PSC.MNG_STRT_DT IS NOT NULL		/* 운영시작일 */
+        <![CDATA[
+        AND PSC.MNG_STRT_DT <= DATE_FORMAT(NOW(), '%Y%m%d')
+        ]]>
+        AND (PSC.TERM_DT >= DATE_FORMAT(NOW(), '%Y%m%d') OR PSC.TERM_DT IS NULL)
+        ) AS bMngCnt	/*운영완료COUNT */
+        ,(
+        SELECT COUNT(PSC.SITE_ID) AS endCnt	/* 종료COUNT */
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        <![CDATA[
+            WHERE 1=1
+            AND (PSC.TERM_DT < DATE_FORMAT(NOW(), '%Y%m%d') AND PSC.TERM_DT IS NOT NULL)
+        ]]>
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        AND PSC.RESC_GUBN = 'B'
+        AND SUBSTRING(PSC.CNRT_STRT_DT,1,4) = DATE_FORMAT(NOW(),'%Y')
+        AND PSC.DEL_YN = 'N'
+        ) AS bEndCnt	/* 종료COUNT */
+
+        FROM DUAL
+        WHERE 1=1
+        ) CNT
+    </select>
+
+    <select id="assetOverviewSiteDtl" parameterType="com.rest.api.model.db.AssetOverviewSiteDtlVO" resultType="com.rest.api.model.db.AssetOverviewSiteDtlVO">
+        SELECT
+            PSC.SITE_ID 			AS siteId       /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            , PSU.USER_SEQ 			AS userSeq      /* 사용자번호 */
+            , CU.USER_ID 			AS userId       /* 사용자ID */
+            , CU.USER_NAME   		AS userName     /* 사용자명 */
+            , CU.EMAIL              AS email        /* 메일 */
+            , CU.TEL_NO             AS telNo        /* 전화번호 */
+            , PSC.ADDR 				AS addr         /* 주소 */
+            , PSC.REGN_GUBN 		AS regnGubn     /* 지역구분*/
+            , PSC.RESC_GUBN 		AS rescGubn     /* 자원구분 (코드ID : CDK-00011( A:PV/B:PV+ESS )) */
+            , PSU2.USER_SEQ 		AS instPsnSeq   /* 설치담당자번호 */
+            , CU2.USER_ID 		    AS instPsnId    /* 설치담당자ID */
+            , CU2.USER_NAME 		AS instPsnName  /* 설치담당자명 */
+            , CU2.EMAIL             AS instEmail    /* 설치담당자메일 */
+            , CU2.TEL_NO            AS instTelNo    /* 설치담당자전화번호 */
+            , PSC.PV_INST_CAPA 		AS pvInstCapa   /* PV설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            , PSC.ESS_INST_CAPA 	AS essInstCapa  /* ESS설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            , PSU3.USER_SEQ 		AS mngUserSeq   /* QM사용자번호 */
+            , CU3.USER_ID 			AS mngUserId    /* QM사용자ID */
+            , CU3.USER_NAME   		AS mngUserName 	/* QM사용자명 */
+            , CU3.EMAIL             AS mngEmail     /* QM메일 */
+            , CU3.TEL_NO            AS mngTelNo     /* QM전화번호 */
+            , PSC.LATD              AS latd       /* 위도 */
+            , PSC.LGTD              AS lgtd       /* 경도 */
+        FROM PRJ_SITE_CNRT PSC
+           LEFT JOIN  PRJ_SITE_USER PSU
+           ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005'
+           )
+           LEFT JOIN PRJ_SITE_USER PSU2
+           ON (PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD ='ACN003'
+           )
+           LEFT JOIN PRJ_SITE_USER PSU3
+           ON (PSC.SITE_ID = PSU3.SITE_ID AND PSU3.SITE_ULVL_CD ='ACN004'
+           )
+           LEFT JOIN CMN_USER CU
+           ON (PSU.USER_SEQ = CU.USER_SEQ
+           )
+           LEFT JOIN CMN_USER CU2
+           ON (PSU2.USER_SEQ = CU2.USER_SEQ
+           )
+           LEFT JOIN CMN_USER CU3
+           ON (PSU3.USER_SEQ = CU3.USER_SEQ
+           )
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        AND PSC.SITE_ID = #{siteId}
+
+    </select>
+
+    <select id="regnSiteCnt" parameterType="com.rest.api.model.db.RegnSiteCntVO" resultType="com.rest.api.model.db.RegnSiteCntVO">
+        SELECT
+            PSC.REGN_GUBN AS regnGubn
+            , CC.CD_NAME AS regnName
+            , CC.FILD_1 AS latd
+            , CC.FILD_2 AS lgtd
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD = 'ACN005')
+        LEFT OUTER JOIN CMN_CMCD CC ON PSC.REGN_GUBN = CC.CD AND CC.GRP_CD = 'CDK-00005'
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        <![CDATA[
+        AND PSC.MNG_STRT_DT <= DATE_FORMAT(NOW(), '%Y%m%d')
+        AND (PSC.TERM_DT >= DATE_FORMAT(NOW(), '%Y%m%d') OR PSC.TERM_DT IS NULL)
+        ]]>
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        GROUP BY REGN_GUBN
+    </select>
+
+    <select id="regnSiteList" parameterType="com.rest.api.model.db.RegnSiteCntVO" resultType="com.rest.api.model.db.RegnSiteVO">
+        SELECT
+        PSC.REGN_GUBN AS regnGubn
+        ,PSC.SITE_ID AS SiteId
+        ,cp.PLANT_STATUS AS eqmtStatus
+        , CC.CD_NAME AS regnName
+        , PSC.LATD AS latd
+        , PSC.LGTD AS lgtd
+        , PSC.ADDR AS addr
+        , CU.USER_NAME AS userName
+        , PSU2.USER_SEQ  AS workOrdUserSeq
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD = 'ACN005')
+        LEFT JOIN PRJ_SITE_USER PSU2
+        ON (PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD = 'ACN004')
+        JOIN CMN_PLANT cp 
+        ON PSC.SITE_ID = cp.SITE_ID 
+        LEFT OUTER JOIN CMN_CMCD CC ON PSC.REGN_GUBN = CC.CD AND CC.GRP_CD = 'CDK-00005'
+        LEFT OUTER JOIN CMN_USER CU ON PSU.USER_SEQ = CU.USER_SEQ
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        <![CDATA[
+        AND PSC.MNG_STRT_DT <= DATE_FORMAT(NOW(), '%Y%m%d')
+        AND (PSC.TERM_DT >= DATE_FORMAT(NOW(), '%Y%m%d') OR PSC.TERM_DT IS NULL)
+        ]]>
+        <if test="regnGubn != null and  regnGubn != ''">
+           AND  PSC.REGN_GUBN  = #{regnGubn}
+        </if>
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+    </select>
+
+
+    <select id="rscGrpInfo" parameterType="com.rest.api.model.db.RscGrpInfoVO" resultType="com.rest.api.model.db.RscGrpInfoVO">
+        SELECT
+            RGU.RSC_GRP_ID 				AS rscGrpId
+            , COUNT(PSC.SITE_ID) 		AS totCnt
+            , SUM(PSC.PV_INST_CAPA) 	AS totPvInstCapa
+            , SUM(PSP.BTRY_CAPA) 		AS totBtryCapa
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD = 'ACN005')
+        JOIN RSC_GRP_USER RGU
+        ON(PSC.SITE_ID = RGU.SITE_ID AND RGU.CNRT_STRT_DT = DATE_FORMAT(NOW(),'%Y%m%d')  )
+        JOIN RSC_GRP RG
+        ON (RGU.RSC_GRP_ID = RG.RSC_GRP_ID AND RG.RSC_STAT_CD = 'I')
+        JOIN PRJ_SITE_PLAN PSP
+        ON(PSC.SITE_ID = PSP.SITE_ID)
+        WHERE 1=1
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        GROUP BY RGU.RSC_GRP_ID
+    </select>
+
+    <select id="alarmOverview" parameterType="com.rest.api.model.db.AlarmOverviewVO" resultType="com.rest.api.model.db.AlarmOverviewVO">
+        SELECT siteId			/* 사이트ID */
+        ,userName				/* 사용자명 */
+        ,rescGubn				/* 자원구분 */
+        ,alrtTypCd			    /* 알람유형코드 */
+        ,alrtCnt
+        ,alrtConfYnCnt
+        ,workOrderCnt
+        ,alrtConfYnTotCnt
+        ,alertPublDtti	/* Alert발행일시 */
+        FROM (
+            SELECT PSC.SITE_ID				AS	siteId		/* 사이트ID */
+            , CU.USER_NAME			AS userName				/* 사용자명 */
+            , PSC.RESC_GUBN			AS rescGubn				/* 자원구분 */
+            , CDA.ALRT_TYP_CD		AS alrtTypCd			/* 알람유형코드 */
+            , (SELECT COUNT(*) FROM MTN_ALRT_HIST MAH2 JOIN CMN_DVCE_ALRM CDA2 ON MAH2.ALRT_CD = CDA2.ALRT_CD AND CDA2.ALRT_TYP_CD != 'AL0001' WHERE MAH2.RELE_DTTI IS NULL AND PSC.SITE_ID = MAH2.SITE_ID AND CSG.GTWY_ID = MAH2.GTWY_ID AND MAH2.RELE_DTTI IS NULL) AS alrtCnt
+            , (SELECT COUNT(*) FROM MTN_ALRT_HIST MAH3 WHERE PSC.SITE_ID = MAH3.SITE_ID AND CSG.GTWY_ID = MAH3.GTWY_ID AND MAH3.ALRT_CONF_YN = 'Y') AS alrtConfYnCnt
+            , (SELECT COUNT(*) FROM MTN_ALRT_HIST MAH4 WHERE PSC.SITE_ID = MAH4.SITE_ID AND CSG.GTWY_ID = MAH4.GTWY_ID ) AS alrtConfYnTotCnt
+            , (SELECT COUNT(*) FROM MTN_WKOD_HIST MWH WHERE PSC.SITE_ID = MWH.SITE_ID AND PRCS_CMPL_DT IS NULL) AS workOrderCnt
+            , DATE_FORMAT(MAX(MAH.OCCR_DTTI), '%Y-%m-%d %H:%i') AS alertPublDtti	/* Alert발행일시 */
+            FROM PRJ_SITE_CNRT PSC
+            JOIN PRJ_SITE_USER PSU
+            ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+            JOIN CMN_USER CU
+            ON (PSU.USER_SEQ = CU.USER_SEQ
+        <if test="userName != null and  userName != ''">
+                AND CU.USER_NAME LIKE CONCAT('%',#{userName},'%')   /* 사용자명 ,ID */
+            </if>
+        )
+            JOIN CMN_SITE_GTWY CSG
+            ON PSC.SITE_ID = CSG.SITE_ID
+            LEFT JOIN MTN_ALRT_HIST MAH
+            ON PSC.SITE_ID = MAH.SITE_ID AND CSG.GTWY_ID = MAH.GTWY_ID
+            LEFT JOIN CMN_DVCE_ALRM CDA
+            ON MAH.ALRT_CD = CDA.ALRT_CD
+            WHERE 1=1
+            AND PSC.DEL_YN = 'N'
+            AND (PSC.TERM_DT >= DATE_FORMAT(NOW(), '%Y%m%d') OR PSC.TERM_DT IS NULL)
+        <![CDATA[
+            AND PSC.MNG_STRT_DT <= DATE_FORMAT(NOW(), '%Y%m%d')
+            ]]>
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                    '${item}'
+                </foreach>
+            )
+        </if>
+        )
+        GROUP BY PSC.SITE_ID
+        ) data
+        WHERE 1=1
+        <if test="rescGubn != null and  rescGubn != ''">
+            AND rescGubn = #{rescGubn}
+        </if>
+
+        <if test='(alrtConfYn == "N" or alrtConfYn == null or alrtConfYn == "") and siteId == null or  siteId == ""'>
+            AND alrtConfYnCnt != alrtConfYnTotCnt
+        </if>
+
+        <if test='alrtConfYn == "Y"'>
+            AND alrtConfYnCnt = alrtConfYnTotCnt
+        </if>
+
+        <if test="siteId != null and  siteId != ''">
+            AND siteId = #{siteId}
+        </if>
+
+    </select>
+
+    <select id="alarmOverviewCnt" parameterType="com.rest.api.model.db.AlarmOverviewVO" resultType="com.rest.api.model.db.AlarmOverviewCntVO">
+        SELECT
+        (
+        SELECT COUNT(*)
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        AND (PSC.TERM_DT >= DATE_FORMAT(NOW(), '%Y%m%d') OR PSC.TERM_DT IS NULL)
+        <![CDATA[
+        AND PSC.MNG_STRT_DT <= DATE_FORMAT(NOW(), '%Y%m%d')
+        ]]>
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        <if test="rescGubn != null and  rescGubn != ''">
+            AND PSC.RESC_GUBN = #{rescGubn}
+        </if>
+        ) AS totalCnt	/* 총건수 */
+        ,(
+        SELECT 0
+        ) AS faultCnt 			/* 고장건수 */
+        ,(
+        SELECT totalCnt-COUNT(DISTINCT(PSC.SITE_ID))
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        JOIN CMN_DVCE_HIST CDH
+		ON(PSC.SITE_ID=CDH.SITE_ID AND CDH.PNT_ADDR='14' OR '13003'
+		AND CDH.TIME_STAMP>=DATE_FORMAT(DATE_ADD(NOW(), interval - 77 MINUTE ),'%Y-%m-%d %H:%i:00'))
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        AND (PSC.TERM_DT >= DATE_FORMAT(NOW(), '%Y%m%d') OR PSC.TERM_DT IS NULL)
+        <![CDATA[
+        AND PSC.MNG_STRT_DT <= DATE_FORMAT(NOW(), '%Y%m%d')
+        ]]>
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        <if test="rescGubn != null and  rescGubn != ''">
+        AND PSC.RESC_GUBN = #{rescGubn}
+        </if>
+        ) AS offlineCnt 			/* 통신장애건수 */
+        ,(
+        SELECT GREATEST(totalCnt-offlineCnt-faultCnt,0)
+        ) AS normalCnt 			/* 정상건수 */
+        FROM DUAL
+
+    </select>
+
+
+    <select id="dsAlarmOverviewCnt" parameterType="com.rest.api.model.db.DsAlarmOverviewRegnVO" resultType="com.rest.api.model.db.DsAlarmOverviewVO">
+        SELECT
+        (
+        SELECT COUNT(*)
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        <!-- JOIN CMN_SITE_GTWY CSG
+        ON PSC.SITE_ID = CSG.SITE_ID -->
+        JOIN CMN_PLANT cp 
+        ON PSC.SITE_ID = cp.SITE_ID
+        <!-- HDEP: 알람 기능 구현 후 수정 필요 
+        JOIN MTN_ALRT_HIST MAH
+        ON PSC.SITE_ID = MAH.SITE_ID AND CSG.GTWY_ID = MAH.GTWY_ID
+        JOIN CMN_DVCE_ALRM CDA
+        ON MAH.ALRT_CD = CDA.ALRT_CD -->
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        AND PSC.REGN_GUBN = #{regnGubn}
+        AND (PSC.TERM_DT >= DATE_FORMAT(NOW(), '%Y%m%d') OR PSC.TERM_DT IS NULL)
+        <![CDATA[
+        AND PSC.MNG_STRT_DT <= DATE_FORMAT(NOW(), '%Y%m%d')
+        ]]>
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+
+        ) AS total	/* 총건수 */
+        ,(
+        SELECT COUNT(*)
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        JOIN CMN_PLANT cp 
+        ON PSC.SITE_ID = cp.SITE_ID
+        <!-- JOIN CMN_SITE_GTWY CSG
+        ON PSC.SITE_ID = CSG.SITE_ID -->
+        <!-- JOIN MTN_ALRT_HIST MAH
+        ON PSC.SITE_ID = MAH.SITE_ID AND CSG.GTWY_ID = MAH.GTWY_ID
+        JOIN CMN_DVCE_ALRM CDA
+        ON MAH.ALRT_CD = CDA.ALRT_CD -->
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        AND PSC.REGN_GUBN = #{regnGubn}
+        AND (PSC.TERM_DT >= DATE_FORMAT(NOW(), '%Y%m%d') OR PSC.TERM_DT IS NULL)
+        <![CDATA[
+        AND PSC.MNG_STRT_DT <= DATE_FORMAT(NOW(), '%Y%m%d')
+        ]]>
+        AND cp.PLANT_STATUS = 'AL0001'
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        ) AS al0001 			/* 정상건수 */
+        ,(
+        SELECT COUNT(*)
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        JOIN CMN_PLANT cp 
+        ON PSC.SITE_ID = cp.SITE_ID
+        <!-- JOIN CMN_SITE_GTWY CSG
+        ON PSC.SITE_ID = CSG.SITE_ID -->
+        <!-- JOIN MTN_ALRT_HIST MAH
+        ON PSC.SITE_ID = MAH.SITE_ID AND CSG.GTWY_ID = MAH.GTWY_ID
+        JOIN CMN_DVCE_ALRM CDA
+        ON MAH.ALRT_CD = CDA.ALRT_CD -->
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        AND PSC.REGN_GUBN = #{regnGubn}
+        AND (PSC.TERM_DT >= DATE_FORMAT(NOW(), '%Y%m%d') OR PSC.TERM_DT IS NULL)
+        <![CDATA[
+        AND PSC.MNG_STRT_DT <= DATE_FORMAT(NOW(), '%Y%m%d')
+        ]]>
+        AND cp.PLANT_STATUS = 'AL0002'
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        ) AS al0002 			/* 고장건수 */
+        ,(
+        SELECT COUNT(*)
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        JOIN CMN_PLANT cp 
+        ON PSC.SITE_ID = cp.SITE_ID
+        <!-- JOIN CMN_SITE_GTWY CSG
+        ON PSC.SITE_ID = CSG.SITE_ID -->
+        <!-- JOIN MTN_ALRT_HIST MAH
+        ON PSC.SITE_ID = MAH.SITE_ID AND CSG.GTWY_ID = MAH.GTWY_ID
+        JOIN CMN_DVCE_ALRM CDA
+        ON MAH.ALRT_CD = CDA.ALRT_CD -->
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        AND PSC.REGN_GUBN = #{regnGubn}
+        AND (PSC.TERM_DT >= DATE_FORMAT(NOW(), '%Y%m%d') OR PSC.TERM_DT IS NULL)
+        <![CDATA[
+        AND PSC.MNG_STRT_DT <= DATE_FORMAT(NOW(), '%Y%m%d')
+        ]]>
+        AND cp.PLANT_STATUS = 'AL0003'
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        ) AS al0003 			/* 통신장애건수 */
+        FROM DUAL
+    </select>
+
+    <select id="alarmOverviewDtl" parameterType="com.rest.api.model.db.AlarmOverviewDtlVO" resultType="com.rest.api.model.db.AlarmOverviewDtlVO">
+        SELECT PSC.SITE_ID			    AS	siteId			/* 사이트ID */
+             , MAH.OCCR_SEQ			    AS occrSeq			/* 발생번호 */
+              , CDA.ALRT_TYP_CD		    AS alrtTypCd		/* 알람유형코드 */
+             , DATE_FORMAT(MAH.OCCR_DTTI, '%Y-%m-%d %H:%i') AS alertPublDtti	/* Alert발행일시 */
+              , MAH.ALRT_CONF_YN		AS alrtConfYn		/* 알람확인여부 */
+              , MAH.ALRT_CNTN			AS alrtCntn			/* 알람내용 */
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        JOIN CMN_SITE_GTWY CSG
+        ON PSC.SITE_ID = CSG.SITE_ID
+        LEFT JOIN MTN_ALRT_HIST MAH
+        ON PSC.SITE_ID = MAH.SITE_ID AND CSG.GTWY_ID = MAH.GTWY_ID
+        LEFT JOIN CMN_DVCE_ALRM CDA
+        ON MAH.ALRT_CD = CDA.ALRT_CD
+        WHERE 1=1
+        AND CDA.ALRT_TYP_CD != 'AL0001'
+        AND MAH.RELE_DTTI IS NULL
+        AND PSC.DEL_YN = 'N'
+        AND (PSC.TERM_DT >= DATE_FORMAT(NOW(), '%Y%m%d') OR PSC.TERM_DT IS NULL)
+        <![CDATA[
+        AND PSC.MNG_STRT_DT <= DATE_FORMAT(NOW(), '%Y%m%d')
+        ]]>
+        AND PSC.SITE_ID = #{siteId}
+    </select>
+
+    <select id="alarmOverviewSiteDtl" parameterType="com.rest.api.model.db.AlarmOverviewSiteDtlVO" resultType="com.rest.api.model.db.AlarmOverviewSiteDtlVO">
+        SELECT
+            PSC.SITE_ID 			AS siteId       /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            , PSU.USER_SEQ 			AS userSeq      /* 사용자번호 */
+            , CU.USER_ID 			AS userId       /* 사용자ID */
+            , CU.USER_NAME   		AS userName     /* 사용자명 */
+            , CU.EMAIL              AS email        /* 메일 */
+            , CU.TEL_NO             AS telNo        /* 전화번호 */
+            , PSC.ADDR 				AS addr         /* 주소 */
+            , PSC.REGN_GUBN 		AS regnGubn     /* 지역구분*/
+            , PSC.RESC_GUBN 		AS rescGubn     /* 자원구분 (코드ID : CDK-00011( A:PV/B:PV+ESS )) */
+            , PSU2.USER_SEQ 		AS instPsnSeq   /* 설치담당자번호 */
+            , CU2.USER_ID 		    AS instPsnId    /* 설치담당자ID */
+            , CU2.USER_NAME 		AS instPsnName  /* 설치담당자명 */
+            , CU2.EMAIL             AS instEmail    /* 설치담당자메일 */
+            , CU2.TEL_NO            AS instTelNo    /* 설치담당자전화번호 */
+            , PSC.PV_INST_CAPA 		AS pvInstCapa   /* PV설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            , PSC.ESS_INST_CAPA 	AS essInstCapa  /* ESS설치용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+            , PSU3.USER_SEQ 		AS mngUserSeq   /* QM사용자번호 */
+            , CU3.USER_ID 			AS mngUserId    /* QM사용자ID */
+            , CU3.USER_NAME   		AS mngUserName 	/* QM사용자명 */
+            , CU3.EMAIL             AS mngEmail     /* QM메일 */
+            , CU3.TEL_NO            AS mngTelNo     /* QM전화번호 */
+            , PSC.LATD              AS latd       /* 위도 */
+            , PSC.LGTD              AS lgtd       /* 경도 */
+            , DATE_FORMAT(now(), '%H%i') AS nowTime /* 현재시간 */
+        FROM PRJ_SITE_CNRT PSC
+           LEFT JOIN  PRJ_SITE_USER PSU
+           ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005'
+           )
+           LEFT JOIN PRJ_SITE_USER PSU2
+           ON (PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD ='ACN003'
+           )
+           LEFT JOIN PRJ_SITE_USER PSU3
+           ON (PSC.SITE_ID = PSU3.SITE_ID AND PSU3.SITE_ULVL_CD ='ACN004'
+           )
+           LEFT JOIN CMN_USER CU
+           ON (PSU.USER_SEQ = CU.USER_SEQ
+           )
+           LEFT JOIN CMN_USER CU2
+           ON (PSU2.USER_SEQ = CU2.USER_SEQ
+           )
+           LEFT JOIN CMN_USER CU3
+           ON (PSU3.USER_SEQ = CU3.USER_SEQ
+           )
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        AND PSC.SITE_ID = #{siteId}
+
+    </select>
+
+    <update id="alarmConfYnUpdate" parameterType="com.rest.api.model.db.AlarmConfYnUpdate">
+        UPDATE MTN_ALRT_HIST
+          SET LAST_CHNG_USEQ = #{lastChngUseq} 		/* 최종작업자번호 */
+          , ALRT_CONF_YN = 'Y' 				            /* 알람확인여부 */
+          where 1=1
+          AND SITE_ID = #{siteId}     /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+          AND OCCR_SEQ = #{occrSeq}	/* 발생번호 */
+    </update>
+
+
+</mapper>

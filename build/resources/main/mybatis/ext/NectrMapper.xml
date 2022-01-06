@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.rest.api.service.ext.NectrMapper">
+   
+   
+    <select id="checkSite" parameterType="String"  resultType="int">
+		      SELECT
+		        COUNT(*)
+			  FROM PRJ_SITE_CNRT PSC
+							JOIN PRJ_SITE_USER PSU
+							ON PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD = 'ACN005'
+							LEFT JOIN PRJ_SITE_USER PSU2
+							ON PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD = 'ACN004'
+							LEFT JOIN PRJ_SITE_PLAN PSP
+							ON PSC.SITE_ID = PSP.SITE_ID
+							JOIN CMN_USER CU2
+							ON (PSU2.USER_SEQ = CU2.USER_SEQ)
+							JOIN CMN_USER CU
+							ON (PSU.USER_SEQ = CU.USER_SEQ)
+							LEFT JOIN PRJ_SITE_GOAL PSG
+		    				ON (PSC.SITE_ID = PSG.SITE_ID AND PSG.GOAL_DT = DATE_FORMAT(NOW(),'%Y%m'))
+		    				LEFT JOIN CMN_PLANT CP
+		    				ON PSC.SITE_ID = CP.SITE_ID
+		    				LEFT JOIN CMN_PLANT_FAC CPF
+		    				ON CP.PLANT_ID = CPF.PLANT_ID
+				WHERE 1=1
+		 			AND PSC.DEL_YN = 'N'
+		 			AND IFNULL(PSC.MNG_STRT_DT, '') != ''
+		 			AND IFNULL(PSC.TERM_DT , '') = ''
+		 			AND (PSU.USER_SEQ = '21' /* 사용자번호 */
+		            	 OR PSC.SITE_ID = #{siteId}
+		 			)       
+    </select>
+    
+    
+        <select id="getBatteryChart" parameterType="String"  resultType="com.rest.api.model.ext.NectrBocResultVO">
+		      SELECT 					
+        					CDH.TIME_STAMP AS 'outDate',
+        					IFNULL(MAX(CDH.13003),0) AS 'dcPwr',
+        					IFNULL(MAX(CDH.13126),0) AS 'batCharPwr',
+        					IFNULL(-MAX(CDH.13150),0) AS 'batDiscPwr',        					        				
+        					IFNULL(MAX(CDH.13141),0) AS 'batSOC'        				        					        					        					        	        					        				
+        		FROM (
+        						SELECT 
+		        							SITE_ID,
+			        						TIME_STAMP,
+									        CASE WHEN PNT_ADDR = '13150' THEN ACC_AMOUNT END AS "13150",
+									        CASE WHEN PNT_ADDR = '13141' THEN ACC_AMOUNT END AS "13141",
+									        CASE WHEN PNT_ADDR = '13126' THEN ACC_AMOUNT END AS "13126",									        
+									        CASE WHEN PNT_ADDR = '13003' THEN ACC_AMOUNT END AS "13003"									        
+        		  					FROM CMN_DVCE_HIST 
+        							WHERE 1=1        
+        									AND SITE_ID =#{siteId}			
+        									AND  TIME_STAMP = #{inputDate}
+        									AND PNT_ADDR in ('13150','13126','13003','13141')
+        						) CDH
+        			GROUP BY CDH.TIME_STAMP
+        			ORDER BY CDH.TIME_STAMP 
+    </select>
+    
+    
+    <select id="getProductionsChart" parameterType="String"  resultType="com.rest.api.model.ext.NectrHpcResultVO">
+		     SELECT 	
+				CHS.TIME_STAMP   AS 'outDate'
+				,ROUND((CHS.TOTAL_AMOUNT / 1000), 2 )  AS amount
+        	FROM CMN_HIS_SUM CHS
+        				 LEFT JOIN CMN_DVCE CD ON CHS.DVCE_ID = CD.DVCE_ID
+        	WHERE 1=1
+        			AND SUM_TYPE = 'A'
+					AND  TIME_STAMP = #{inputDate}
+        			AND  CHS.SITE_ID = #{siteId}
+        			AND  CD.PNT_ADDR IN ('2','13134')
+        	ORDER BY SUM_ID
+    </select>
+    
+	<insert id="nectrResultInsert" parameterType="com.rest.api.model.ext.NectrResultVO">
+	
+		INSERT INTO CMN_API_HIST
+		(
+		USER_SEQ
+		,SITE_ID
+		,TYPE
+		,CODE
+		,P_solarPower
+		,P_gridPower
+		,P_batteryPower
+		,P_homePower
+		,FL_solarToGrid
+		,FL_gridToSolar
+		,FL_gridToBattery
+		,FL_batteryToGrid
+		,FL_batteryToHome
+		,FL_homeToBattery
+		,FL_homeToSolar
+		,FL_solarToHome
+		,FL_solarToBattery
+		,FL_batteryToSolar
+		,FL_homeToGrid
+		,FL_gridToHome
+		,FLV_solar_grid
+		,FLV_grid_battery
+		,FLV_battery_home
+		,FLV_home_solar
+		,FLV_solar_battery
+		,FLV_home_grid
+		,Battery_SOC
+		,Battery_SOH
+		,dcPwr
+		,batCharPwr
+		,batDiscPwr
+		,batSOC
+		,amount
+		,outDate
+		,TIME_STAMP
+		)
+		VALUES
+		(
+		#{userSeq}
+		,#{siteId}
+		,#{type}
+		,#{code}
+		,#{P_solarPower}
+		,#{P_gridPower}
+		,#{P_batteryPower}
+		,#{P_homePower}
+		,#{FL_solarToGrid}
+		,#{FL_gridToSolar}
+		,#{FL_gridToBattery} 
+		,#{FL_batteryToGrid}
+		,#{FL_batteryToHome}
+		,#{FL_homeToBattery}
+		,#{FL_homeToSolar}
+		,#{FL_solarToHome}
+		,#{FL_solarToBattery}
+		,#{FL_batteryToSolar}
+		,#{FL_homeToGrid}
+		,#{FL_gridToHome}
+		,#{FLV_solar_grid}
+		,#{FLV_grid_battery}
+		,#{FLV_battery_home}
+		,#{FLV_home_solar}
+		,#{FLV_solar_battery}
+		,#{FLV_home_grid}
+		,#{Battery_SOC}
+		,#{Battery_SOH}
+		,#{dcPwr}
+		,#{batCharPwr}
+		,#{batDiscPwr}
+		,#{batSOC}
+		,#{amount}
+		,#{outDate}
+		,#{timeStamp}
+		)
+	</insert>
+
+	<select id="getHistId" resultType="String">
+		SELECT HIST_ID as histId
+		FROM CMN_API_HIST
+		ORDER BY HIST_ID DESC
+		LIMIT 1;
+    </select>
+
+</mapper>

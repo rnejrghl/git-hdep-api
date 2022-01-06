@@ -1,0 +1,999 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.rest.api.service.mo.MoMapper">
+    <select id="operations" parameterType="com.rest.api.model.mo.OperationsVO"  resultType="com.rest.api.model.mo.OperationsVO">
+        SELECT
+        PSC.SITE_ID				AS	siteId			    /* 사이트ID */
+        , CU.USER_SEQ			AS	userSeq			    /* 사용자번호 */
+        , CU.USER_NAME			AS	userName			/* 사용자명 */
+        , PSC.RESC_GUBN		    AS	rescGubn			/* 자원구분 */
+        , ROUND(IFNULL(PSG.PR,0),1)				AS	pr					/* PR */
+        , ROUND(IFNULL((PSG.PR / IFNULL(DATE_FORMAT(LAST_DAY(DATE_FORMAT(NOW(),'%Y%m%d')),'%d'),0 )),0),2)				    AS	prVsGoal				/* PR(목표대비) */
+        , ROUND(IFNULL(PSG.PPA,0),1)				AS	ppa				    /* PPA거래량 (기본단위 : kWh ( 코드ID : CDK-00018.TUN007 )) */ 
+        , ROUND(IFNULL((PSG.PPA / IFNULL(DATE_FORMAT(LAST_DAY(DATE_FORMAT(NOW(),'%Y%m%d')),'%d'),0 )),0),2)					    AS	ppaVsGoal					/* PPA거래량(목표대비) */
+        , ROUND(IFNULL(PSG.GOAL_GENR_CAPA,0),1)	AS  goalGenrCapa	        /* 목표발전량 (기본단위 : kWh ( 코드ID : CDK-00018.TUN007 )) */
+        , ROUND(IFNULL((PSG.GOAL_GENR_CAPA / IFNULL(DATE_FORMAT(LAST_DAY(DATE_FORMAT(NOW(),'%Y%m%d')),'%d'),0 )),0),2)					    AS	goalGenrCapaVsGoal					/*목표발전량(목표대비) */
+        , ROUND(IFNULL((PSG.ENERGY_YIELD / IFNULL(DATE_FORMAT(LAST_DAY(DATE_FORMAT(NOW(),'%Y%m%d')),'%d'),0 )),0),2)     				    AS	goalEnergyYield					/*Energy Yield (목표대비) */
+        , ROUND(IFNULL(PSG.IVT_EFFICIENCY,0),2)							AS	goalIvt							/*IVT Efficiency(목표대비) (%) */
+        , (SELECT COUNT(*) FROM MTN_WKOD_HIST MWH WHERE 1=1 AND MWH.SITE_ID = PSC.SITE_ID AND MWH.WORK_ORD_STAT != 'WS0004') AS workOrderCnt	/* WorkOrder 미처리건수 */
+        , PSC.LATD              AS latd /* 위도 */
+        , PSC.LGTD              AS lgtd /* 경도 */
+        , PSC.ADDR              AS addr /* 주소 */
+        , CP.PLANT_STATUS AS eqmtStatus    /* site 설비상태 */
+        , CP.timeZone     AS timeZone    /* site 설비상태 */
+        , CPF.FAC_PV_STATUS AS pvOperationStatus    /* pv 운전상태 */
+        , CPF.FAC_ESS_STATUS AS essOperationStatus    /* ess 운전상태 */
+        , IFNULL(ROUND(( SELECT SUM(CPH.PPA) / 1000 FROM CMN_PLANT_HIST CPH WHERE CPH.SITE_ID = PSC.SITE_ID AND DATE_FORMAT(CPH.TIME_STAMP, '%Y-%m-%d') = DATE_FORMAT(DATE_ADD(NOW(), INTERVAL REPLACE(CP.TIMEZONE, 'GMT', '') HOUR), '%Y-%m-%d') ), 2), 0) AS tradingVolume    /* ess 거래가능량 */
+        , (SELECT COUNT(*) FROM MTN_WKOD_HIST MWH WHERE 1=1 AND MWH.SITE_ID = PSC.SITE_ID AND MWH.WORK_ORD_TYP != 'WT0004') AS unrReleCnt    /* 미해제건수 */
+        , IF ((SELECT COUNT(*) FROM MTN_WKOD_HIST MWH WHERE 1=1 AND MWH.SITE_ID = PSC.SITE_ID AND MWH.WORK_ORD_TYP = 'WT0003') > 1 , 'Y', 'N') AS workOrderPushYn  /* 특별점검 Work Order 발행 여부 */
+        , DATE_FORMAT(CP.LAST_STATUS_DATE,'%Y-%m-%d %H:%i') AS dataLastDate    /* 데이터 최종수신일 */
+        , PSU2.USER_SEQ AS workOrdUserSeq
+        , CU2.USER_NAME AS workOrdUserName
+        , PSP.MODL_CAPA AS modlCapa
+        , IFNULL(ROUND(( SELECT SUM(CPH.PW_AMT) / 1000 FROM CMN_PLANT_HIST CPH WHERE CPH.SITE_ID = PSC.SITE_ID AND DATE_FORMAT(CPH.TIME_STAMP, '%Y-%m-%d') = DATE_FORMAT(DATE_ADD(NOW(), INTERVAL REPLACE(CP.TIMEZONE, 'GMT', '') HOUR), '%Y-%m-%d') ), 2), 0) AS generation
+        , ( SELECT WEATHER_ICON FROM CMN_PLANT_WEATHER CPW WHERE CPW.SITE_ID = PSC.SITE_ID ORDER BY TIME_STAMP DESC LIMIT 1) AS weatherIcon       
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD = 'ACN005'
+        LEFT JOIN PRJ_SITE_USER PSU2
+        ON PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD = 'ACN004'
+        LEFT JOIN PRJ_SITE_PLAN PSP
+        ON PSC.SITE_ID = PSP.SITE_ID
+        JOIN CMN_USER CU2
+        ON (PSU2.USER_SEQ = CU2.USER_SEQ)
+        JOIN CMN_USER CU
+        ON (PSU.USER_SEQ = CU.USER_SEQ
+        <if test="userName != null and  userName != ''">
+            AND CU.USER_NAME LIKE CONCAT('%', #{userName},'%')
+        </if>
+        )
+        LEFT JOIN PRJ_SITE_GOAL PSG
+        ON (PSC.SITE_ID = PSG.SITE_ID AND PSG.GOAL_DT = DATE_FORMAT(NOW(),'%Y%m'))
+        LEFT JOIN CMN_PLANT CP
+        ON PSC.SITE_ID = CP.SITE_ID
+        LEFT JOIN CMN_PLANT_FAC CPF
+        ON CP.PLANT_ID = CPF.PLANT_ID
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        AND IFNULL(PSC.MNG_STRT_DT, '') != ''
+        AND IFNULL(PSC.TERM_DT , '') = ''
+        <if test="rescGubn != null and  rescGubn != ''">
+        AND PSC.RESC_GUBN = #{rescGubn}
+        </if>
+
+        <if test="eqmtStatus != null and  eqmtStatus != ''">
+            AND CP.PLANT_STATUS  = #{eqmtStatus}
+        </if>
+        <if test="pvOperationStatus != null and  pvOperationStatus != ''">
+            AND CPF.FAC_PV_STATUS  = #{pvOperationStatus}
+        </if>
+        <if test="essOperationStatus != null and  essOperationStatus != ''">
+            AND  CPF.FAC_ESS_STATUS   = #{essOperationStatus}
+        </if>
+        <if test="dataLastDate != null and  dataLastDate != ''">
+            AND  DATE_FORMAT(NOW(),'%Y%m%d')   = DATE_FORMAT( #{dataLastDate},'%Y%m%d')
+        </if>
+
+        <if test="siteId != null and  siteId != ''">
+            AND PSC.SITE_ID = #{siteId}
+        </if>
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        ORDER BY SUBSTRING(PSC.SITE_ID,8,11) DESC
+        LIMIT #{pageStart}, #{pagePer}
+    </select>
+    <select id="operationsPageCnt" parameterType="com.rest.api.model.mo.OperationsVO" resultType="com.rest.api.model.mo.OperationsCntVO">
+        SELECT
+            COUNT(*) AS TotalCnt
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD = 'ACN005'
+        LEFT JOIN PRJ_SITE_USER PSU2
+        ON PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD = 'ACN004'
+        LEFT JOIN PRJ_SITE_PLAN PSP
+        ON PSC.SITE_ID = PSP.SITE_ID
+        JOIN CMN_USER CU2
+        ON (PSU2.USER_SEQ = CU2.USER_SEQ)
+        JOIN CMN_USER CU
+        ON (PSU.USER_SEQ = CU.USER_SEQ
+        <if test="userName != null and  userName != ''">
+            AND CU.USER_NAME LIKE CONCAT('%', #{userName},'%')
+        </if>
+        )
+        LEFT JOIN PRJ_SITE_GOAL PSG
+        ON (PSC.SITE_ID = PSG.SITE_ID AND PSG.GOAL_DT = DATE_FORMAT(NOW(),'%Y%m'))
+        LEFT JOIN CMN_PLANT CP
+        ON PSC.SITE_ID = CP.SITE_ID
+        LEFT JOIN CMN_PLANT_FAC CPF
+        ON CP.PLANT_ID = CPF.PLANT_ID
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        AND IFNULL(PSC.MNG_STRT_DT, '') != ''
+        AND IFNULL(PSC.TERM_DT , '') = ''
+        <if test="rescGubn != null and  rescGubn != ''">
+            AND PSC.RESC_GUBN = #{rescGubn}
+        </if>
+
+        <if test="eqmtStatus != null and  eqmtStatus != ''">
+            AND CP.PLANT_STATUS  = #{eqmtStatus}
+        </if>
+        <if test="pvOperationStatus != null and  pvOperationStatus != ''">
+            AND CPF.FAC_PV_STATUS  = #{pvOperationStatus}
+        </if>
+        <if test="essOperationStatus != null and  essOperationStatus != ''">
+            AND  CPF.FAC_ESS_STATUS   = #{essOperationStatus}
+        </if>
+        <if test="dataLastDate != null and  dataLastDate != ''">
+            AND  DATE_FORMAT(NOW(),'%Y%m%d')   = DATE_FORMAT( #{dataLastDate},'%Y%m%d')
+        </if>
+
+        <if test="siteId != null and  siteId != ''">
+            AND PSC.SITE_ID = #{siteId}
+        </if>
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+    </select>
+
+    <select id="operationsExcel" parameterType="com.rest.api.model.mo.OperationsVO" resultType="com.rest.api.model.mo.OperationsVO">
+        SELECT
+        PSC.SITE_ID				AS	siteId			    /* 사이트ID */
+        , CU.USER_SEQ			AS	userSeq			    /* 사용자번호 */
+        , CU.USER_NAME			AS	userName			/* 사용자명 */
+        , CC.CD_NAME		    AS	rescGubn			/* 자원구분 */
+        , ROUND(IFNULL(PSG.PR,0),1)				AS	pr					/* PR */
+        , ROUND(IFNULL((PSG.PR / IFNULL(DATE_FORMAT(LAST_DAY(DATE_FORMAT(NOW(),'%Y%m%d')),'%d'),0 )),0),1)				    AS	prVsGoal				/* PR(목표대비) */
+        -- , ROUND(IFNULL(PSG.PPA,0),1)				AS	ppa				    /* PPA거래량 (기본단위 : kWh ( 코드ID : CDK-00018.TUN007 )) */
+        , ROUND(IFNULL((PSG.PPA / IFNULL(DATE_FORMAT(LAST_DAY(DATE_FORMAT(NOW(),'%Y%m%d')),'%d'),0 )),0),1)					    AS	ppaVsGoal					/* PPA거래량(목표대비) */
+        , ROUND(IFNULL(PSG.GOAL_GENR_CAPA,0),1)	AS  goalGenrCapa	        /* 목표발전량 (기본단위 : kWh ( 코드ID : CDK-00018.TUN007 )) */
+        , ROUND(IFNULL((PSG.GOAL_GENR_CAPA / IFNULL(DATE_FORMAT(LAST_DAY(DATE_FORMAT(NOW(),'%Y%m%d')),'%d'),0 )),0),1)					    AS	goalGenrCapaVsGoal					/*목표발전량(목표대비) */
+        , (SELECT COUNT(*) FROM MTN_WKOD_HIST MWH WHERE 1=1 AND MWH.SITE_ID = PSC.SITE_ID AND MWH.WORK_ORD_STAT != 'WS0004') AS workOrderCnt	/* WorkOrder 미처리건수 */
+        , PSC.LATD              AS latd /* 위도 */
+        , PSC.LGTD              AS lgtd /* 경도 */
+        , PSC.ADDR              AS addr /* 주소 */
+        , CC1.CD_NAME AS eqmtStatus    /* site 설비상태 */
+        , CC2.CD_NAME AS pvOperationStatus    /* pv 운전상태 */
+        , '0' AS generation    /* pv 발전량 */
+        , CC3.CD_NAME AS essOperationStatus    /* ess 운전상태 */
+        , '0' AS tradingVolume    /* ess 거래가능량 */
+        , '0' AS unrReleCnt    /* 미해제건수 */
+        , 'N' AS workOrderPushYn  /* 특별점검 Work Order 발행 여부 */
+        , DATE_FORMAT(NOW(),'%Y-%m-%d %H:%i') AS dataLastDate    /* 데이터 최종수신일 */
+        , PSU2.USER_SEQ AS workOrdUserSeq
+        , CU2.USER_NAME AS workOrdUserName
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD = 'ACN005'
+        LEFT JOIN PRJ_SITE_USER PSU2
+        ON PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD = 'ACN004'
+        JOIN CMN_USER CU2
+        ON (PSU2.USER_SEQ = CU2.USER_SEQ)
+        LEFT OUTER JOIN CMN_CMCD CC ON PSC.RESC_GUBN = CC.CD AND CC.GRP_CD = 'CDK-00011'
+        LEFT OUTER JOIN CMN_CMCD CC1 ON 'AL0001' = CC1.CD AND CC1.GRP_CD = 'CDK-00001'
+        LEFT OUTER JOIN CMN_CMCD CC2 ON 'OPP001' = CC2.CD AND CC2.GRP_CD = 'CDK-00002'
+        LEFT OUTER JOIN CMN_CMCD CC3 ON 'OPP002' = CC3.CD AND CC3.GRP_CD = 'CDK-00002'
+
+        JOIN CMN_USER CU
+        ON (PSU.USER_SEQ = CU.USER_SEQ
+        <if test="userName != null and  userName != ''">
+            AND CU.USER_NAME LIKE CONCAT('%', #{userName},'%')
+        </if>
+        )
+        LEFT JOIN PRJ_SITE_GOAL PSG
+        ON (PSC.SITE_ID = PSG.SITE_ID AND PSG.GOAL_DT = DATE_FORMAT(NOW(),'%Y%m'))
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        <if test="rescGubn != null and  rescGubn != ''">
+            AND PSC.RESC_GUBN = #{rescGubn}
+        </if>
+
+        <if test="eqmtStatus != null and  eqmtStatus != ''">
+            AND 'AL0001'  = #{eqmtStatus}
+        </if>
+        <if test="pvOperationStatus != null and  pvOperationStatus != ''">
+            AND 'OP0001'  = #{pvOperationStatus}
+        </if>
+        <if test="essOperationStatus != null and  essOperationStatus != ''">
+            AND  'OP0002'   = #{essOperationStatus}
+        </if>
+        <if test="dataLastDate != null and  dataLastDate != ''">
+            AND  DATE_FORMAT(NOW(),'%Y%m%d')   = DATE_FORMAT( #{dataLastDate},'%Y%m%d')
+        </if>
+
+        <if test="siteId != null and  siteId != ''">
+            AND PSC.SITE_ID = #{siteId}
+        </if>
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        ORDER BY SUBSTRING(PSC.SITE_ID,8,11) DESC
+    </select>
+<!--    <select id="sitePlantInfo" parameterType="com.rest.api.model.mo.OperationsVo" resultType="com.rest.api.model.mo.OperationsVo">-->
+    <select id="sitePlantInfo" parameterType="com.rest.api.model.mo.OperationsVO" resultType="com.rest.api.model.mo.OperationsVO">
+        SELECT
+            CP.SITE_ID             AS siteId
+            , CP.TIMEZONE           AS timeZone
+            , PSC.RESC_GUBN         AS rescGubn
+        FROM CMN_PLANT CP
+        LEFT JOIN PRJ_SITE_CNRT PSC ON CP.SITE_ID = PSC.SITE_ID
+        WHERE 1=1
+        <if test="siteId != null and  siteId != ''">
+            AND  CP.SITE_ID = #{siteId}
+        </if>
+    </select>
+    <select id="kpiPowerList" parameterType="com.rest.api.model.mo.OperationsVO" resultType="com.rest.api.model.mo.KpiPowersVO">
+        SELECT A.pntAddr
+            , SUM(A.totalAmt)       AS totalAmt
+            , SUM(A.accTotalAmt)    AS accTotalAmt
+            , SUM(A.realAmt)        AS realAmt
+            , sum(CDH2.ACC_AMOUNT)        AS accAmount
+          FROM (
+            SELECT
+                CDH.SITE_ID             AS siteId
+                ,CDH.PNT_ADDR           AS pntAddr
+                , SUM(CDH.AMOUNT)       AS totalAmt
+                , SUM(CDH.ACC_AMOUNT)   AS accTotalAmt
+                <choose>
+                    <when test ="searchDate != null and  searchDate != ''">
+                        , SUM(IF(DATE_FORMAT(CDH.TIME_STAMP,'%Y%m%d%H%i00') = #{searchDate} , CDH.AMOUNT, 0)) AS realAmt
+                    </when>
+                    <otherwise>
+                        , 0 AS realAmt
+                    </otherwise>
+                </choose>
+                , MAX(CDH.TIME_STAMP)        AS `localTime`
+            FROM CMN_DVCE_HIST CDH
+            WHERE 1=1
+            <if test="siteId != null and  siteId != ''">
+                AND  CDH.SITE_ID = #{siteId}
+            </if>
+            <if test="searchDate != null and  searchDate != ''">
+                AND  DATE_FORMAT(CDH.TIME_STAMP,'%Y%m%d')   = DATE_FORMAT(#{searchDate},'%Y%m%d')
+            </if>
+            <if test="siteIds != null and  siteIds != ''">
+                AND CDH.SITE_ID IN (
+                <foreach collection="siteIds" item="item" index="index" separator=",">
+                    '${item}'
+                </foreach>
+                )
+            </if>
+            <if test="pntAddrs != null and  pntAddrs != ''">
+                AND CDH.PNT_ADDR IN (
+                <foreach collection="pntAddrs" item="item" index="index" separator=",">
+                    '${item}'
+                </foreach>
+                )
+            </if>
+            group by CDH.SITE_ID , CDH.PNT_ADDR
+        ) AS A
+        LEFT JOIN CMN_DVCE_HIST CDH2
+        ON A.localtime = CDH2.TIME_STAMP AND A.siteId = CDH2.SITE_ID AND A.pntAddr = CDH2.PNT_ADDR
+        GROUP BY A.pntAddr
+    </select>
+    
+    <select id="realFlow" parameterType="com.rest.api.model.mo.OperationsVO" resultType="com.rest.api.model.mo.KpiSummaryVO">
+        SELECT CDH.SITE_ID AS 'siteId',
+        CDH.TIME_STAMP AS 'timeStamp',
+        IFNULL(MAX(CDH.13150),0) AS 'batDisc',
+        IFNULL(MAX(CDH.13126),0) AS 'batChar',
+        IFNULL(MAX(CDH.13003),0) AS'ivtAc',
+        IFNULL(MAX(CDH.24),0) AS 'ivtDc',
+        IFNULL(MAX(CDH.13141),0) AS 'BatPower',
+        IFNULL(MAX(CDH.13119),0) AS 'loadPower',
+        IFNULL(MAX(CDH.13121),0) AS 'gridPower',
+        IFNULL(MAX(CDH.13149),0) AS 'othEnergy',
+        IFNULL(MAX(CDH.13142),0) AS 'BatHealth',
+        0 AS 'production',
+        0 AS 'ivtEfficiency',
+        0 AS 'energyYield'
+        FROM (
+            SELECT SITE_ID,
+            TIME_STAMP,
+            CASE WHEN PNT_ADDR = '13150' THEN ACC_AMOUNT END AS "13150",
+            CASE WHEN PNT_ADDR = '13126' THEN ACC_AMOUNT END AS "13126",
+            CASE WHEN PNT_ADDR = '13003' THEN ACC_AMOUNT END AS "13003",
+            CASE WHEN PNT_ADDR = '13141' THEN ACC_AMOUNT END AS "13141",
+            CASE WHEN PNT_ADDR = '13119' THEN ACC_AMOUNT END AS "13119",
+            CASE WHEN PNT_ADDR = '13121' THEN ACC_AMOUNT END AS "13121",
+            CASE WHEN PNT_ADDR = '13149' THEN ACC_AMOUNT END AS "13149",
+            CASE WHEN PNT_ADDR = '24' THEN ACC_AMOUNT END AS "24",
+            CASE WHEN PNT_ADDR = '13142' THEN ACC_AMOUNT END AS "13142"
+            from CMN_DVCE_HIST 
+            WHERE 1=1
+            <if test="siteId != null and  siteId != ''">
+                AND SITE_ID = #{siteId}
+            </if>
+            AND PNT_ADDR in ('13150','13126','13003','24','13141','13119','13121','13149','13142')) CDH
+        WHERE CDH.TIME_STAMP>DATE_SUB(NOW(), INTERVAL 13 MINUTE)   
+        GROUP BY CDH.TIME_STAMP
+        ORDER BY CDH.TIME_STAMP DESC
+        LIMIT 1;
+    </select>
+
+    <select id="kpiSummary" parameterType="com.rest.api.model.mo.OperationsVO" resultType="com.rest.api.model.mo.KpiSummaryVO">
+        SELECT
+            CPH.SITE_ID AS 'siteId',
+            SUM(CPH.PW_AMT) AS 'production',
+            SUM(CPH.IVT_AC) AS 'ivtAc',
+            SUM(CPH.IVT_DC) AS 'ivtDc',
+            
+            SUM(CPH.BAT_POWER) AS 'batPower',
+            SUM(CPH.LOAD_POWER) AS 'loadPower',
+            SUM(CPH.BAT_CHAR) AS 'batChar',
+            SUM(CPH.BAT_DISC) AS 'batDisc',
+            SUM(CPH.OTH_ENERGY) AS 'othEnergy',
+            SUM(CPH.GRID_POWER) AS 'gridPower',
+            
+            SUM(if(IFNULL(CPH.IVT_AC, 0) = 0 || IFNULL(CPH.IVT_DC, 0) = 0 , 0, ROUND(CPH.IVT_AC/CPH.IVT_DC, 2))) AS 'ivtEfficiency',
+            (
+                SELECT SUM(maxEnergyYield)  FROM (
+                    SELECT MAX(ENERGY_YIELD) AS 'maxEnergyYield' FROM CMN_PLANT_HIST CPH1
+                    WHERE 1=1
+                        <if test="siteId != null and  siteId != ''">
+                            AND  CPH1.SITE_ID = #{siteId}
+                        </if>
+                        <if test="siteIds != null and  siteIds != ''">
+                            AND CPH1.SITE_ID IN (
+                            <foreach collection="siteIds" item="item" index="index" separator=",">
+                                '${item}'
+                            </foreach>
+                            )
+                        </if>
+                        <if test="dayDate != null and  dayDate != ''">
+                            AND  CPH1.TIME_STAMP   = DATE_FORMAT(#{dayDate},'%Y-%m-%d %H:%i:00')
+                        </if>
+                        <if test="searchDate != null and  searchDate != ''">
+                            AND  DATE_FORMAT(CPH1.TIME_STAMP,'%Y%m%d')   = DATE_FORMAT(#{searchDate},'%Y%m%d')
+                        </if>
+                        <if test="monthDate != null and  monthDate != ''">
+                            AND  DATE_FORMAT(CPH1.TIME_STAMP,'%Y%m')   = DATE_FORMAT(#{monthDate},'%Y%m')
+                        </if>
+                    GROUP BY CPH1.SITE_ID, DATE_FORMAT(CPH1.TIME_STAMP, '%Y%m%d')
+                ) AS EY2
+            )  AS 'energyYield'
+        FROM CMN_PLANT_HIST CPH
+        WHERE 1=1
+        <if test="siteId != null and  siteId != ''">
+            AND  CPH.SITE_ID = #{siteId}
+        </if>
+        <if test="dayDate != null and  dayDate != ''">
+            AND  CPH.TIME_STAMP   = DATE_FORMAT(#{dayDate},'%Y-%m-%d %H:%i:00')
+        </if>
+        <if test="searchDate != null and  searchDate != ''">
+            AND  DATE_FORMAT(CPH.TIME_STAMP,'%Y%m%d')   = DATE_FORMAT(#{searchDate},'%Y%m%d')
+        </if>
+        <if test="monthDate != null and  monthDate != ''">
+            AND  DATE_FORMAT(CPH.TIME_STAMP,'%Y%m')   = DATE_FORMAT(#{monthDate},'%Y%m')
+        </if>
+        <if test="siteIds != null and  siteIds != ''">
+            AND CPH.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+    </select>
+    
+    <select id="kpiHistSummary" parameterType="com.rest.api.model.mo.OperationsVO" resultType="com.rest.api.model.mo.KpiSummaryVO">
+        SELECT
+        CPS.SITE_ID AS 'siteId',
+        SUM(CPS.TOTAL_PW_AMT) AS 'production',
+        SUM(CPS.TOTAL_IVT_AC) AS 'ivtAc',
+        SUM(CPS.TOTAL_IVT_DC) AS 'ivtDc',
+        SUM(if(IFNULL(CPS.TOTAL_IVT_AC, 0) = 0 || IFNULL(CPS.TOTAL_IVT_DC, 0) = 0 , 0, ROUND(CPS.TOTAL_IVT_AC/CPS.TOTAL_IVT_DC, 2))) AS 'ivtEfficiency',
+        SUM(CPS.TOTAL_ENERGY_YIELD) AS 'energyYield',
+        SUM(CPS.TOTAL_PPA) AS 'ppa'
+        FROM CMN_PLANT_SUM CPS
+        WHERE 1=1
+            AND CPS.SUM_TYPE = 'B'
+        <if test="siteId != null and  siteId != ''">
+            AND  CPS.SITE_ID = #{siteId}
+        </if>
+        <if test="dayDate != null and  dayDate != ''">
+            AND  CPS.TIME_STAMP   = DATE_FORMAT(#{dayDate},'%Y-%m-%d %H:%i:00')
+        </if>
+        <if test="searchDate != null and  searchDate != ''">
+            AND  DATE_FORMAT(CPS.TIME_STAMP,'%Y%m%d')   = DATE_FORMAT(#{searchDate},'%Y%m%d')
+        </if>
+        <if test="monthDate != null and  monthDate != ''">
+            AND  DATE_FORMAT(CPS.TIME_STAMP,'%Y%m')   = DATE_FORMAT(#{monthDate},'%Y%m')
+        </if>
+        <if test="siteIds != null and  siteIds != ''">
+            AND CPS.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+    </select>
+    <select id="kpiSummaryList" parameterType="com.rest.api.model.mo.OperationsVO" resultType="com.rest.api.model.mo.KpiSummaryVO">
+        SELECT CDH.SITE_ID AS 'siteId',
+        CDH.TIME_STAMP AS 'timeStamp',
+        IFNULL(-MAX(CDH.13150),0) AS 'batDisc',
+        IFNULL(MAX(CDH.13126),0) AS 'batChar',
+        IFNULL(MAX(CDH.13126)-MAX(CDH.13150),0) AS 'batPower',
+        IFNULL(MAX(CDH.24),0) AS'ivtAc',
+        IFNULL(MAX(CDH.13003),0) AS 'ivtDc',
+        IFNULL(MAX(CDH.13119),0) AS 'loadPower',
+        IFNULL(MAX(CDH.13149)-MAX(CDH.13121),0) AS 'gridPower',
+        0 AS 'production'
+        FROM (
+        SELECT SITE_ID,
+        TIME_STAMP,
+        CASE WHEN PNT_ADDR = '13150' THEN ACC_AMOUNT END AS "13150",
+        CASE WHEN PNT_ADDR = '13126' THEN ACC_AMOUNT END AS "13126",
+        CASE WHEN PNT_ADDR = '13003' THEN ACC_AMOUNT END AS "13003",
+        CASE WHEN PNT_ADDR = '24' THEN ACC_AMOUNT END AS "24",
+        CASE WHEN PNT_ADDR = '13119' THEN ACC_AMOUNT END AS "13119",
+       	CASE WHEN PNT_ADDR = '13121' THEN ACC_AMOUNT END AS "13121",
+        CASE WHEN PNT_ADDR = '13149' THEN ACC_AMOUNT END AS "13149"
+        from CMN_DVCE_HIST 
+        WHERE 1=1
+        <if test="siteId != null and  siteId != ''">
+        AND SITE_ID =#{siteId}
+        </if>
+        <if test="searchDate != null and  searchDate != ''">
+        AND  DATE_FORMAT(TIME_STAMP,'%Y%m%d')   = DATE_FORMAT(#{searchDate},'%Y%m%d')
+        </if>
+        AND PNT_ADDR in ('13150','13126','13003','24', '13119','13121','13149')) CDH
+        GROUP BY CDH.TIME_STAMP
+        ORDER BY CDH.TIME_STAMP;
+    </select>
+
+    <select id="powerHourlyList" parameterType="com.rest.api.model.mo.PowersVO" resultType="com.rest.api.model.mo.KpiSummaryVO">
+        SELECT CDH.SITE_ID AS 'siteId',
+        CDH.TIME_STAMP AS 'timeStamp',
+        IFNULL(MAX(CDH.13141),0) AS 'batPower',
+        IFNULL(-MAX(CDH.13150),0) AS 'batDisc',
+        IFNULL(MAX(CDH.13126),0) AS 'batChar',
+        IFNULL(MAX(CDH.13119),0) AS 'loadPower',
+        IFNULL(MAX(CDH.24),0) AS'ivtAc',
+        IFNULL(MAX(CDH.13003),0) AS 'ivtDc',
+        0 AS 'production'
+        FROM (
+        SELECT SITE_ID,
+        TIME_STAMP,
+        CASE WHEN PNT_ADDR = '13150' THEN ACC_AMOUNT END AS "13150",
+        CASE WHEN PNT_ADDR = '13141' THEN ACC_AMOUNT END AS "13141",
+        CASE WHEN PNT_ADDR = '13126' THEN ACC_AMOUNT END AS "13126",
+        CASE WHEN PNT_ADDR = '13119' THEN ACC_AMOUNT END AS "13119",
+        CASE WHEN PNT_ADDR = '13003' THEN ACC_AMOUNT END AS "13003",
+        CASE WHEN PNT_ADDR = '24' THEN ACC_AMOUNT END AS "24"
+        from CMN_DVCE_HIST 
+        WHERE 1=1
+        <if test="siteId != null and  siteId != ''">
+        AND SITE_ID =#{siteId}
+        </if>
+        <if test="startDate != null and  startDate != '' and endDate != null and  endDate != ''">
+        AND  DATE_FORMAT(TIME_STAMP,'%Y%m%d') between DATE_FORMAT(#{startDate},'%Y%m%d') AND DATE_FORMAT(#{endDate},'%Y%m%d')
+        </if>
+        AND PNT_ADDR in ('13150','13126','13003','24','13119','13141')) CDH
+        GROUP BY CDH.TIME_STAMP
+        ORDER BY CDH.TIME_STAMP;
+    </select>
+    
+    <select id="kpiPowerSumList" parameterType="com.rest.api.model.mo.OperationsVO" resultType="com.rest.api.model.mo.KpiSummaryVO">
+        SELECT
+         A.pntAddr
+        , SUM(A.totalAmt)        AS  totalAmt
+        , SUM(A.accTotalAmt)     AS  accTotalAmt
+        , SUM(CDH2.ACC_AMOUNT)        AS accAmount
+        FROM (
+            SELECT
+            CDH.SITE_ID             AS siteId
+            ,CDH.PNT_ADDR           AS pntAddr
+            , SUM(CDH.AMOUNT)       AS totalAmt
+            , SUM(CDH.ACC_AMOUNT)   AS accTotalAmt
+            , MAX(CDH.TIME_STAMP)        AS `localTime`
+            FROM CMN_DVCE_HIST CDH
+            WHERE 1=1
+            <if test="siteId != null and  siteId != ''">
+                AND  CDH.SITE_ID = #{siteId}
+            </if>
+            <if test="siteIds != null and  siteIds != ''">
+                AND CDH.SITE_ID IN (
+                <foreach collection="siteIds" item="item" index="index" separator=",">
+                    '${item}'
+                </foreach>
+                )
+            </if>
+            <if test="pntAddrs != null and  pntAddrs != ''">
+                AND CDH.PNT_ADDR IN (
+                <foreach collection="pntAddrs" item="item" index="index" separator=",">
+                    '${item}'
+                </foreach>
+                )
+            </if>
+            <if test="searchDate != null and  searchDate != ''">
+                AND  DATE_FORMAT(CDH.TIME_STAMP,'%Y%m')   = DATE_FORMAT(#{searchDate},'%Y%m')
+            </if>
+            group by CDH.SITE_ID , CDH.PNT_ADDR, DATE_FORMAT(CDH.TIME_STAMP,'%Y%m%d')
+            ) AS A
+        LEFT JOIN CMN_DVCE_HIST CDH2
+        ON A.localtime = CDH2.TIME_STAMP AND A.pntAddr = CDH2.PNT_ADDR and A.siteId = CDH2.SITE_ID
+        GROUP BY A.pntAddr
+    </select>
+
+    <select id="realPowerList" parameterType="com.rest.api.model.mo.PowersVO" resultType="com.rest.api.model.mo.KpiPowersVO">
+        SELECT
+        CDH.DVCE_ID AS dvceId
+        , CD.SYS_TAG AS pntAddrName
+        , CDH.PNT_ADDR AS pntAddr
+        , CDH.ACC_AMOUNT AS accAmount
+        , CDH.TIME_STAMP  AS time
+        FROM CMN_DVCE_HIST CDH
+        LEFT JOIN CMN_DVCE CD ON CDH.DVCE_ID = CD.DVCE_ID
+        WHERE 1=1
+        <if test="siteId != null and  siteId != ''">
+            AND  CDH.SITE_ID = #{siteId}
+        </if>
+        <if test="pntAddr != null and  pntAddr != ''">
+            AND  CDH.PNT_ADDR = #{pntAddr}
+        </if>
+        <if test="dvceId != null and  dvceId != ''">
+            AND CDH.DVCE_ID = #{dvceId}
+        </if>
+        <if test="startDate != null and  startDate != '' and endDate != null and  endDate != ''">
+            AND  DATE_FORMAT(CDH.TIME_STAMP,'%Y%m%d') between DATE_FORMAT(#{startDate},'%Y%m%d') and DATE_FORMAT(#{endDate},'%Y%m%d')
+        </if>
+        <if test="searchDate != null and  searchDate != ''">
+            AND  DATE_FORMAT(CDH.TIME_STAMP,'%Y%m%d%H%i%s')   = DATE_FORMAT(#{searchDate},'%Y%m%d%H%i%s')
+        </if>
+        ORDER BY TIME_STAMP ASC
+    </select>
+    <select id="realPowerSumList" parameterType="com.rest.api.model.mo.OperationsVO" resultType="com.rest.api.model.mo.KpiSummaryVO">
+        SELECT
+            CPS.SITE_ID AS 'siteId',
+            IFNULL(CPS.TOTAL_PW_AMT,0) AS 'production',
+            IFNULL(CPS.TOTAL_IVT_AC,0) AS 'ivtAc',
+            IFNULL(CPS.TOTAL_IVT_DC,0) AS 'ivtDc',
+            CPS.TIME_STAMP  AS 'timeStamp'
+        FROM CMN_PLANT_SUM CPS
+        WHERE 1=1
+            AND SUM_TYPE = 'A'
+        <if test="searchDate != null and  searchDate != ''">
+            AND  DATE_FORMAT(CPS.TIME_STAMP,'%Y%m%d')   = DATE_FORMAT(#{searchDate},'%Y%m%d')
+        </if>
+        <if test="siteId != null and  siteId != ''">
+            AND  CPS.SITE_ID = #{siteId}
+        </if>
+        ORDER BY TIME_STAMP
+    </select>
+    <select id="hourlyOperList" parameterType="com.rest.api.model.mo.PowersVO" resultType="com.rest.api.model.mo.PowerChartVO">
+        SELECT CHS.TIME_STAMP   AS 'date'
+        ,ROUND((CHS.TOTAL_AMOUNT / 1000), 2 )  AS amount
+        FROM CMN_HIS_SUM CHS
+        LEFT JOIN CMN_DVCE CD ON CHS.DVCE_ID = CD.DVCE_ID
+        WHERE 1=1
+        AND SUM_TYPE = 'A'
+        <if test="startDate != null and  startDate != '' and endDate != null and  endDate != ''">
+            AND  DATE_FORMAT(CHS.TIME_STAMP,'%Y%m%d')   between DATE_FORMAT(#{startDate},'%Y%m%d') AND DATE_FORMAT(#{endDate},'%Y%m%d')
+        </if>
+        <if test="siteId != null and  siteId != ''">
+            AND  CHS.SITE_ID = #{siteId}
+        </if>
+        AND  CD.PNT_ADDR IN ('2','13134')
+        ORDER BY SUM_ID
+    </select>
+
+    <select id="operationsCnt" parameterType="com.rest.api.model.mo.OperationsVO" resultType="com.rest.api.model.mo.OperationsCntVO">
+        SELECT SUM(A.workOrderCnt) AS workOrderTotCnt     /* WorkOrder 미처리건수 */
+        , SUM(A.dayGoalGnrt) AS  todayGnrtVsGoal          /* 금일 발전량 (목표) */
+        , SUM(A.dayGoalEnergy) AS  todayEnergyVsGoal      /* 금일 Energy Yield(목표) */
+        , SUM(A.monthGoalGnrt) AS  monthGnrtVsGoal        /* 금월 발전량(목표) */
+        , SUM(A.monthGoalEnergy) AS  monthEnergyVsGoal    /* 금월 Energy Yield(목표)  */
+        , SUM(A.modlCapa) AS  totalModlCapa          /* 금일 Energy Yield(목표)  */
+        , '0' AS  unrReleCnt /* 미해제 알람 건수 */
+        FROM (
+            SELECT
+            PSC.SITE_ID
+            , (SELECT COUNT(*) FROM MTN_WKOD_HIST MWH WHERE 1=1 AND MWH.SITE_ID = PSC.SITE_ID AND MWH.WORK_ORD_STAT != 'WS0004') AS workOrderCnt	/* WorkOrder 미처리건수 */
+            , ROUND(IFNULL((PSG.ENERGY_YIELD / IFNULL(DATE_FORMAT(LAST_DAY(DATE_FORMAT(NOW(),'%Y%m%d')),'%d'),0 )),0),2)     	 AS	dayGoalEnergy	/*Energy Yield (일별) */
+            , ROUND(IFNULL((PSG.GOAL_GENR_CAPA / IFNULL(DATE_FORMAT(LAST_DAY(DATE_FORMAT(NOW(),'%Y%m%d')),'%d'),0 )),0),2)   AS dayGoalGnrt	    /*목표발전량(일별) */
+            , PSG.ENERGY_YIELD   AS monthGoalEnergy	    /*목표발전량(월별) */
+            , PSG.GOAL_GENR_CAPA   AS monthGoalGnrt	    /*목표발전량(월별) */
+            , PSP.MODL_CAPA AS modlCapa
+            FROM PRJ_SITE_CNRT PSC
+            JOIN PRJ_SITE_USER PSU
+            ON PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD = 'ACN005'
+            LEFT JOIN PRJ_SITE_GOAL PSG
+            ON (PSC.SITE_ID = PSG.SITE_ID AND PSG.GOAL_DT = DATE_FORMAT(NOW(),'%Y%m'))
+            LEFT JOIN PRJ_SITE_PLAN PSP
+            ON PSC.SITE_ID = PSP.SITE_ID
+            WHERE 1=1
+            AND PSC.DEL_YN = 'N'
+            <if test="siteIds != null and  siteIds != ''">
+                AND PSC.SITE_ID IN (
+                <foreach collection="siteIds" item="item" index="index" separator=",">
+                    '${item}'
+                </foreach>
+                )
+            </if>
+        ) as A
+    </select>
+
+    <select id="kpiList" parameterType="com.rest.api.model.mo.KpiVO" resultType="com.rest.api.model.mo.KpiVO">
+        SELECT
+            SITE_ID AS siteId  /* 사이트ID */
+            ,GOAL_DT AS goalDt /* 목표일자 */
+            ,GOAL_GENR_CAPA AS goalGenrCapa /* 목표발전량 */
+            ,PPA AS ppa /* PPA거래량 */
+            ,PR AS pr /* pr */
+            ,SALE AS sale /* 매출 */
+        FROM PRJ_SITE_GOAL
+        WHERE 1 = 1
+        AND SITE_ID = #{siteId}
+        <if test="statYm != null and  statYm != '' and endYm != null and  endYm != ''">
+            AND GOAL_DT BETWEEN #{statYm} and #{endYm}
+        </if>
+
+    </select>
+
+    <select id="kpiCompareList" parameterType="com.rest.api.model.mo.KpiVO" resultType="com.rest.api.model.mo.KpiListVO">
+        SELECT
+            CPH1.SITE_ID as siteId,
+            DLIST.dDay as nowDate,
+            CPH1.nowTotPwAmt as nowTotPwAmt,
+            0 as nowTotPpa,
+            0 as lastTotPpa,
+            if(IFNULL(CPH1.nowTotIvtAc, 0) = 0 || IFNULL(CPH1.nowTotIvtDc, 0) = 0 , 0, ROUND(((CPH1.nowTotIvtAc / 1000) /(CPH1.nowTotIvtDc/1000)) * 100, 1)) AS nowTotIvt,
+            CPH2.lastDate as lastDate,
+            CPH2.lastTotPwAmt as lastTotPwAmt,
+            if(IFNULL(CPH2.lastTotIvtAc, 0) = 0 || IFNULL(CPH2.lastTotIvtDc, 0) = 0 , 0, ROUND(((CPH2.lastTotIvtAc/1000)/(CPH2.lastTotIvtDc/1000)) * 100, 1)) AS lastTotIvt,
+            PSG.goalDt as goalDt,
+            <choose>
+                <when test="searchType == 'day'">
+                    ROUND(IFNULL((PSG.goalGenrCapa / IFNULL(DATE_FORMAT(LAST_DAY(DATE_FORMAT(STR_TO_DATE(PSG.goalDt, '%Y-%m'),'%Y%m01')),'%d'),0 )),0),1) as goalGenrCapa,
+                    ROUND(IFNULL((PSG.ppa / IFNULL(DATE_FORMAT(LAST_DAY(DATE_FORMAT(STR_TO_DATE(PSG.goalDt, '%Y-%m'),'%Y%m01')),'%d'),0 )),0),1) AS	goalPpa,					/* 목표PPA거래량 */
+                    ROUND(IFNULL((PSG.pr / IFNULL(DATE_FORMAT(LAST_DAY(DATE_FORMAT(STR_TO_DATE(PSG.goalDt, '%Y-%m'),'%Y%m01')),'%d'),0 )),0),1)  AS	goalPr,
+                    ROUND(IFNULL((PSG.sale / IFNULL(DATE_FORMAT(LAST_DAY(DATE_FORMAT(STR_TO_DATE(PSG.goalDt, '%Y-%m'),'%Y%m01')),'%d'),0 )),0),1)  AS	goalSale,
+                    ROUND(IFNULL((PSG.energyYield / IFNULL(DATE_FORMAT(LAST_DAY(DATE_FORMAT(STR_TO_DATE(PSG.goalDt, '%Y-%m'),'%Y%m01')),'%d'),0 )),0),1)  AS	goalEnergy,	   /*목표Energy Yield (목표대비) */
+                    PSG.ivtEfficiency AS goalIvt /* 목표IVT_EFFICIENCY */
+                </when>
+                <otherwise>
+                    PSG.goalGenrCapa AS goalGenrCapa, /* 목표발전량 */
+                    PSG.ppa AS goalPpa, /* PPA거래량 */
+                    PSG.pr  AS goalPr,/* pr */
+                    PSG.sale AS goalSale, /* 매출 */
+                    PSG.energyYield AS goalEnergy, /* ENERGY_VIELD */
+                    <choose>
+                        <when test="searchType == 'year'">
+                            Round(IFNULL(PSG.ivtEfficiency / 12, 0), 1) AS goalIvt /* IVT_EFFICIENCY */
+                        </when>
+                        <otherwise>
+                            PSG.ivtEfficiency AS goalIvt
+                        </otherwise>
+                    </choose>
+
+                </otherwise>
+            </choose>
+        FROM (
+            SELECT
+                <choose>
+                    <when test="searchType == 'month'">
+                        DATE_FORMAT(a.Date, '%Y-%m') AS dDay
+                    </when>
+                    <when test="searchType == 'year'">
+                        DATE_FORMAT(a.Date, '%Y') AS dDay
+                    </when>
+                    <otherwise>
+                        DATE_FORMAT(a.Date, '%Y-%m-%d') AS dDay
+                    </otherwise>
+                </choose>
+                from (
+                    select curdate() - INTERVAL (a.a + (10 * b.a) + (100 * c.a) + (1000 * d.a) ) DAY as Date
+                    from (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as a
+                    cross join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as b
+                    cross join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as c
+                    cross join (select 0 as a union all select 1 union all select 2 union all select 3 union all select 4 union all select 5 union all select 6 union all select 7 union all select 8 union all select 9) as d
+                ) a
+                WHERE 1=1
+                    <if test="statYm != null and  statYm != '' and endYm != null and endYm != null">
+                        <choose>
+                            <when test="searchType == 'month'">
+                                AND DATE_FORMAT(a.Date, '%Y-%m') BETWEEN DATE_FORMAT(#{statYm}, '%Y-%m') AND DATE_FORMAT(#{endYm}, '%Y-%m')
+                            </when>
+                            <when test="searchType == 'year'">
+                                AND DATE_FORMAT(a.Date, '%Y') BETWEEN DATE_FORMAT(#{statYm}, '%Y') AND DATE_FORMAT(#{endYm}, '%Y')
+                            </when>
+                            <otherwise>
+                                AND a.Date BETWEEN DATE_FORMAT(#{statYm}, '%Y-%m-%d 00:00:00') AND DATE_FORMAT(#{endYm}, '%Y-%m-%d 23:59:59')
+                            </otherwise>
+                        </choose>
+                    </if>
+                GROUP BY dDay
+        ) DLIST
+        LEFT JOIN (
+            SELECT SITE_ID,
+            <choose>
+                <when test="searchType == 'month'">
+                    DATE_FORMAT(TIME_STAMP, '%Y-%m') AS nowDate,
+                </when>
+                <when test="searchType == 'year'">
+                    DATE_FORMAT(TIME_STAMP, '%Y') AS nowDate,
+                </when>
+                <otherwise>
+                    DATE_FORMAT(TIME_STAMP, '%Y-%m-%d') AS nowDate,
+                </otherwise>
+            </choose>
+            SUM(PW_AMT) AS nowTotPwAmt,
+            SUM(IVT_AC) AS nowTotIvtAc,
+            SUM(IVT_DC) AS nowTotIvtDc
+            FROM CMN_PLANT_HIST CPH1
+            WHERE SITE_ID = #{siteId}
+                <if test="statYm != null and  statYm != '' and endYm != null and endYm != null">
+                    <choose>
+                        <when test="searchType == 'month'">
+                            AND DATE_FORMAT(TIME_STAMP, '%Y-%m') BETWEEN DATE_FORMAT(#{statYm}, '%Y-%m') AND DATE_FORMAT(#{endYm}, '%Y-%m')
+                        </when>
+                        <when test="searchType == 'year'">
+                            AND DATE_FORMAT(TIME_STAMP, '%Y') BETWEEN DATE_FORMAT(#{statYm}, '%Y') AND DATE_FORMAT(#{endYm}, '%Y')
+                        </when>
+                        <otherwise>
+                            AND TIME_STAMP BETWEEN DATE_FORMAT(#{statYm}, '%Y-%m-%d 00:00:00') AND DATE_FORMAT(#{endYm}, '%Y-%m-%d 23:59:59')
+                        </otherwise>
+                    </choose>
+                </if>
+            GROUP BY SITE_ID, nowDate
+        ) AS CPH1 ON DLIST.dDay = CPH1.nowDate
+        LEFT JOIN
+        (
+            SELECT SITE_ID,
+                <choose>
+                    <when test="searchType == 'month'">
+                        DATE_FORMAT(TIME_STAMP, '%Y-%m') AS lastDate,
+                    </when>
+                    <when test="searchType == 'year'">
+                        DATE_FORMAT(TIME_STAMP, '%Y') AS lastDate,
+                    </when>
+                    <otherwise>
+                        DATE_FORMAT(TIME_STAMP, '%Y-%m-%d') AS lastDate,
+                    </otherwise>
+                </choose>
+                SUM(PW_AMT) AS lastTotPwAmt,
+                SUM(IVT_AC) AS lastTotIvtAc,
+                SUM(IVT_DC) AS lastTotIvtDc
+            FROM CMN_PLANT_HIST CPH2
+            WHERE SITE_ID = #{siteId}
+            <if test="statYm != null and  statYm != '' and endYm != null and endYm != null">
+                <choose>
+                    <when test="searchType == 'month'">
+                        AND DATE_FORMAT(TIME_STAMP, '%Y-%m') BETWEEN DATE_FORMAT(DATE_SUB(#{statYm}, INTERVAL 1 YEAR), '%Y-%m')
+                            AND DATE_FORMAT(DATE_SUB(#{endYm}, INTERVAL 1 YEAR), '%Y-%m')
+                    </when>
+                    <when test="searchType == 'year'">
+                        AND DATE_FORMAT(TIME_STAMP, '%Y') BETWEEN DATE_FORMAT(DATE_SUB(#{statYm}, INTERVAL 1 YEAR), '%Y')
+                            AND DATE_FORMAT(DATE_SUB(#{endYm}, INTERVAL 1 YEAR), '%Y')
+                    </when>
+                    <otherwise>
+                        AND TIME_STAMP BETWEEN DATE_FORMAT(DATE_SUB(#{statYm}, INTERVAL 1 YEAR), '%Y-%m-%d 00:00:00')
+                            AND DATE_FORMAT(DATE_SUB(#{endYm}, INTERVAL 1 YEAR), '%Y-%m-%d 23:59:59')
+                    </otherwise>
+                </choose>
+            </if>
+            GROUP BY SITE_ID, lastDate
+        ) AS CPH2 ON CPH1.SITE_ID = CPH2.SITE_ID AND CPH1.nowDate = DATE_ADD(CPH2.lastDate, INTERVAL 1 YEAR)
+        LEFT JOIN (
+            SELECT
+                SITE_ID AS siteId
+                <choose>
+                    <when test="searchType == 'year'">
+                        ,DATE_FORMAT(STR_TO_DATE(GOAL_DT, '%Y'), '%Y') AS goalDt
+                    </when>
+                    <otherwise>
+                        ,DATE_FORMAT(STR_TO_DATE(GOAL_DT, '%Y%m'), '%Y-%m-01') AS goalDt
+                    </otherwise>
+                </choose>
+                ,SUM(GOAL_GENR_CAPA) AS goalGenrCapa /* 목표발전량 */
+                ,SUM(PPA) AS ppa /* PPA거래량 */
+                ,SUM(PR) AS pr /* pr */
+                ,SUM(SALE) AS sale /* 매출 */
+                ,SUM(ENERGY_YIELD) AS energyYield /* ENERGY_VIELD */
+                ,SUM(IVT_EFFICIENCY) AS ivtEfficiency /* IVT_EFFICIENCY */
+            FROM PRJ_SITE_GOAL PSG
+            WHERE 1=1
+                AND PSG.SITE_ID = #{siteId}
+                <if test="statYm != null and  statYm != '' and endYm != null and  endYm != ''">
+                    <choose>
+                        <when test="searchType == 'year'">
+                            AND DATE_FORMAT(STR_TO_DATE(GOAL_DT, '%Y'), '%Y')
+                                BETWEEN DATE_FORMAT(#{statYm}, '%Y') and DATE_FORMAT(#{endYm}, '%Y')
+                        </when>
+                        <otherwise>
+                            AND DATE_FORMAT(STR_TO_DATE(GOAL_DT, '%Y%m'), '%Y%m')
+                                BETWEEN DATE_FORMAT(#{statYm}, '%Y%m') and DATE_FORMAT(#{endYm}, '%Y%m')
+                        </otherwise>
+                    </choose>
+                </if>
+            GROUP BY goalDt
+        ) PSG ON
+        <choose>
+            <when test="searchType == 'year'">
+                DATE_FORMAT(STR_TO_DATE(DLIST.dDay, '%Y-%m'), '%Y') = DATE_FORMAT(STR_TO_DATE(PSG.goalDt, '%Y'), '%Y')
+            </when>
+            <when test="searchType == 'month'">
+                DATE_FORMAT(STR_TO_DATE(DLIST.dDay, '%Y-%m'), '%Y%m') = DATE_FORMAT(STR_TO_DATE(PSG.goalDt, '%Y-%m'), '%Y%m')
+            </when>
+            <otherwise>
+                DATE_FORMAT(STR_TO_DATE(DLIST.dDay, '%Y-%m-%d'), '%Y%m') = DATE_FORMAT(STR_TO_DATE(PSG.goalDt, '%Y-%m'), '%Y%m')
+            </otherwise>
+        </choose>
+        order by DLIST.dDay ASC
+    </select>
+    <select id="kpiCompareEnergy" parameterType="com.rest.api.model.mo.KpiVO" resultType="com.rest.api.model.mo.KpiListVO">
+        SELECT
+            CPS1.SITE_ID AS  siteId,
+            CPS1.nowTotEnergy AS nowTotEnergy,
+            CPS2.lastTotEnergy AS lastTotEnergy
+        FROM (
+                SELECT
+                    SITE_ID,
+                    SUM(CPS.TOTAL_ENERGY_YIELD)  AS nowTotEnergy
+                FROM  CMN_PLANT_SUM CPS
+                WHERE 1=1
+                    AND SITE_ID = #{siteId}
+                    AND SUM_TYPE = 'B'
+                    <choose>
+                        <when test="searchType == 'month'">
+                            AND DATE_FORMAT(TIME_STAMP, '%Y-%m')
+                                BETWEEN DATE_FORMAT(STR_TO_DATE(#{statYm},'%Y-%m'), '%Y-%m') and DATE_FORMAT(STR_TO_DATE(#{statYm},'%Y-%m'), '%Y-%m')
+                        </when>
+                        <when test="searchType == 'year'">
+                            AND DATE_FORMAT(TIME_STAMP, '%Y')
+                                BETWEEN DATE_FORMAT(STR_TO_DATE(#{statYm},'%Y'), '%Y') and DATE_FORMAT(STR_TO_DATE(#{statYm},'%Y'), '%Y')
+                        </when>
+                        <otherwise>
+                            AND DATE_FORMAT(TIME_STAMP, '%Y-%m-%d')
+                                BETWEEN DATE_FORMAT(STR_TO_DATE(#{statYm}, '%Y-%m-%d'), '%Y-%m-%d') and DATE_FORMAT(STR_TO_DATE(#{statYm}, '%Y-%m-%d'), '%Y-%m-%d')
+                        </otherwise>
+                    </choose>
+            ) CPS1
+        LEFT JOIN (
+            SELECT
+                CPS.SITE_ID,
+                SUM(CPS.TOTAL_ENERGY_YIELD)  AS lastTotEnergy
+            FROM  CMN_PLANT_SUM CPS
+            WHERE 1=1
+            AND SITE_ID = #{siteId}
+            AND SUM_TYPE = 'B'
+            <choose>
+                <when test="searchType == 'month'">
+                    AND DATE_FORMAT(TIME_STAMP, '%Y-%m') BETWEEN DATE_FORMAT(DATE_SUB(#{statYm}, INTERVAL 1 YEAR), '%Y-%m')
+                        AND DATE_FORMAT(DATE_SUB(#{statYm}, INTERVAL 1 YEAR), '%Y-%m')
+                </when>
+                <when test="searchType == 'year'">
+                    AND DATE_FORMAT(TIME_STAMP, '%Y') BETWEEN DATE_FORMAT(DATE_SUB(#{statYm}, INTERVAL 1 YEAR), '%Y')
+                        AND DATE_FORMAT(DATE_SUB(#{statYm}, INTERVAL 1 YEAR), '%Y')
+                </when>
+                <otherwise>
+                    AND DATE_FORMAT(TIME_STAMP, '%Y-%m-%d') BETWEEN DATE_FORMAT(DATE_SUB(#{statYm}, INTERVAL 1 YEAR), '%Y-%m-%d')
+                        AND DATE_FORMAT(DATE_SUB(#{statYm}, INTERVAL 1 YEAR), '%Y-%m-%d')
+                </otherwise>
+            </choose>
+        ) CPS2 ON CPS1.SITE_ID = CPS2.SITE_ID
+
+
+    </select>
+
+    <select id="plantFailList" resultType="com.rest.api.model.mo.FailAlarmVo" parameterType="com.rest.api.model.mo.FailAlarmVo">
+        SELECT
+            CFH.SITE_ID AS siteId,
+            CFH.FAULT_TYPE AS status,
+            CFH.FAULT_RESPONSE AS contents,
+            CFH.CREATE_TIME AS notiDt,
+            CFH.OVER_TIME AS unlockDt
+        FROM CMN_FAIL_HIST CFH
+        WHERE 1=1
+        <if test="siteId != null and siteId != ''">
+            AND CFH.SITE_ID = #{siteId}
+        </if>
+        <if test="status != null and status != ''">
+            AND CFH.FAULT_TYPE = #{status}
+        </if>
+        <if test="notiStartDt != null and notiStartDt != '' and notiEndDt != null and notiEndDt != ''">
+            AND CFH.CREATE_TIME BETWEEN DATE_FORMAT(#{notiStartDt},'%Y-%m-%d 00:00:00')
+                AND DATE_FORMAT(#{notiEndDt}, '%Y-%m-%d 23:59:59')
+        </if>
+        <if test="unlockStartDt != null and unlockStartDt != '' and unlockEndDt != null and unlockEndDt != ''">
+            AND CFH.OVER_TIME BETWEEN DATE_FORMAT(#{unlockStartDt}, '%Y-%m-%d 00:00:00')
+                AND DATE_FORMAT(#{unlockEndDt}, '%Y-%m-%d 23:59:59')
+        </if>
+        ORDER BY CREATE_TIME DESC
+    </select>
+    
+    <select id="get_PsId_FacId" resultType="com.rest.api.model.pp.PrjSitePsInfoVo" parameterType="com.rest.api.model.pp.PrjSitePsInfoVo">
+		     SELECT            
+		             CP.PLANT_KEY AS plantKey,
+		             CPF.FAC_ID AS facId
+		        FROM CMN_PLANT CP
+			        LEFT JOIN PRJ_SITE_CNRT PSC ON CP.SITE_ID = PSC.SITE_ID
+			        LEFT JOIN CMN_PLANT_FAC CPF ON CP.PLANT_ID = CPF.PLANT_ID
+		        WHERE 1=1
+		        AND  CP.SITE_ID = #{siteId}    
+    </select>
+    
+    <select id="getSiteSpec" resultType="com.rest.api.model.pp.PrjSiteSpecVO" parameterType="com.rest.api.model.pp.PrjSiteSpecVO">
+		     SELECT 
+					MODL_CAPA 			AS modlCapa, 		/* 모듈용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */         
+            		INVT_CAPA 			AS invtCapa, 		/* 인버터용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */         
+            		BTRY_CAPA 			AS btryCapa 		/* 배터리용량 (기본단위 : kWp ( 코드ID : CDK-00018.TUN004 )) */
+			FROM PRJ_SITE_PLAN
+			WHERE SITE_ID = #{siteId} 
+    </select>
+    
+    <select id="getSpotPriceGraph" resultType="com.rest.api.model.ext.PdResultVO" >
+		    SELECT 
+		    				LAST_CHNG_DTTI  as lastChngDtti,
+		    				RRP as rrp,
+		    				DEMAND as demand,
+		    				CURRENT_YN as currentYn
+			FROM PD_ENERGY_PRICE
+			WHERE LAST_CHNG_DTTI > DATE_ADD(NOW(),INTERVAL -5 HOUR)
+			ORDER BY LAST_CHNG_DTTI  ASC
+    </select>
+
+    <select id="pieChart" parameterType="com.rest.api.model.mo.PowersVO" resultType="com.rest.api.model.mo.pieChartVO">
+    SELECT CDH.SITE_ID AS 'siteId',
+        CDH.TIME_STAMP AS 'timeStamp',
+        IFNULL(ROUND(MAX(CDH.13112)/1000,2),0) AS 'totalPV',
+        IFNULL(ROUND(MAX(CDH.13116)/1000,2),0) AS 'selfConsumpt',
+        IFNULL(ROUND(MAX(CDH.13028)/1000,2),0) AS'batCharge',
+        IFNULL(ROUND(MAX(CDH.13199)/1000,2),0) AS 'totalLoad',
+        IFNULL(ROUND((MAX(CDH.curr_13148)-MAX(CDH2.past_13148))/1000,2),0) AS 'purEnergy',
+        IFNULL(ROUND(MAX(CDH.1)/1000,2),0) AS 'pvToHome'
+    FROM (
+        SELECT SITE_ID,
+        TIME_STAMP,
+        CASE WHEN PNT_ADDR = '13112' THEN ACC_AMOUNT END AS "13112",
+        CASE WHEN PNT_ADDR = '13116' THEN ACC_AMOUNT END AS "13116",
+        CASE WHEN PNT_ADDR = '13028' THEN ACC_AMOUNT END AS "13028",
+        CASE WHEN PNT_ADDR = '13199' THEN ACC_AMOUNT END AS "13199",
+        CASE WHEN PNT_ADDR = '13148' THEN ACC_AMOUNT END AS "curr_13148",
+        CASE WHEN PNT_ADDR = '1' THEN ACC_AMOUNT END AS "1"
+        from CMN_DVCE_HIST 
+        WHERE 1=1
+        <if test="siteId != null and  siteId != ''">    
+        AND SITE_ID = #{siteId}
+        </if>
+        AND PNT_ADDR in ('13112','13116','13028','13199','13148','1')) CDH,
+        (
+        SELECT 
+			IFNULL(MAX(ACC_AMOUNT),0) AS "past_13148"
+        FROM CMN_DVCE_HIST
+        WHERE 1=1
+        <if test="siteId != null and  siteId != ''">    
+        AND SITE_ID = #{siteId}
+        </if>
+        AND TIME_STAMP=DATE_FORMAT(NOW(),'%Y%m%d')
+        AND PNT_ADDR = '13148' 
+        ) CDH2
+    WHERE CDH.TIME_STAMP LIKE DATE_FORMAT(NOW(), '%Y-%m-%d%')
+    GROUP BY CDH.TIME_STAMP
+    ORDER BY CDH.TIME_STAMP DESC
+    LIMIT 1;
+
+    </select>
+
+</mapper>

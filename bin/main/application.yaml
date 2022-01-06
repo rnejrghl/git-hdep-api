@@ -1,0 +1,55 @@
+spring:
+  profiles:
+    active: dev # 디폴트 환경
+
+  http:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+    
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 100MB
+      max-request-size: 200MB
+
+  messages:
+    basename: i18n/exception
+    encoding: UTF-8
+
+  jwt:
+    secret: govlepel@$&amp;
+
+  datasource:
+    #driver-class-name: com.mysql.cj.jdbc.Driver
+    #url: jdbc:mysql://db-hanwha.cgbtb4p2fnml.ap-northeast-2.rds.amazonaws.com:3306/AUVPP?autoReconnect=true&characterEncoding=UTF-8
+    driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+    url: jdbc:log4jdbc:mysql://db-hanwha.cgbtb4p2fnml.ap-northeast-2.rds.amazonaws.com:3306/AUVPP?autoReconnect=true&characterEncoding=UTF-8
+    username: root
+    password: giJsK73qmD5Pogau
+    
+    jpa:
+       database: mysql
+       generate-ddl: true
+       show-sql: true
+
+server:
+  port: 9999 
+  tomcat:
+    use-relative-redirects: true
+
+  
+logging:
+  config: classpath:log4j2.xml
+    
+    
+# logging:
+#   level:
+#     org.springframework: INFO
+#     org.springframework.web: INFO
+
+
+
+

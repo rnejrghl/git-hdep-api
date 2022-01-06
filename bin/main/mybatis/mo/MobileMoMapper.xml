@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.rest.api.service.mo.MobileMoMapper">
+
+    <select id="mobOperationList" parameterType="com.rest.api.model.pp.PrjSiteVO" resultType="com.rest.api.model.pp.MobileOperationVO">
+        SELECT
+        PSC.SITE_ID             AS siteId       /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        , PSU.USER_SEQ          AS userSeq      /* 사용자번호 */
+        , CU.USER_ID            AS userId       /* 사용자ID */
+        , PSC.RESC_GUBN         AS rescGubn    /* 발전소 구분 */
+        , CU.USER_NAME          AS userName     /* 사용자명 */
+        , CP.PLANT_STATUS       AS eqmtStatus   /* 발전소 상태 */
+        , CP.TIMEZONE           AS timeZone   /* 발전소 상태 */
+        , PSC.ADDR              as addr         /* 주소 */
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        JOIN PRJ_SITE_USER PSU2 ON (PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD ='ACN003')
+        LEFT JOIN CMN_USER CU ON (PSU.USER_SEQ = CU.USER_SEQ)
+        LEFT JOIN CMN_PLANT CP ON PSC.SITE_ID = CP.SITE_ID
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        AND IFNULL(PSC.MNG_STRT_DT, '') != ''
+        <if test="userName != null and  userName != ''">
+            AND (
+                CU.USER_NAME LIKE CONCAT('%',#{userName},'%')  OR   /* 사용자명 ,ID */
+                PSC.ADDR LIKE CONCAT('%',#{addr},'%') OR            /* 주소 */
+                PSC.SITE_ID LIKE CONCAT('%',#{siteId},'%')          /* 사이트 id */
+            )
+        </if>
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        <if test="eqmtStatus != null and  eqmtStatus != ''">
+            AND CP.PLANT_STATUS  = #{eqmtStatus}
+        </if>
+        ORDER BY SUBSTRING(PSC.SITE_ID,8,11) DESC
+        <if test="pagePer != null and pagePer != 0">
+            LIMIT #{pageStart}, #{pagePer}
+        </if>
+    </select>
+    <select id="mobOperationCnt" parameterType="com.rest.api.model.pp.PrjSiteVO" resultType="com.rest.api.model.pp.PageVo">
+        SELECT
+            count(*) as 'totalCnt'
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        JOIN PRJ_SITE_USER PSU2 ON (PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD ='ACN003')
+        LEFT JOIN CMN_USER CU ON (PSU.USER_SEQ = CU.USER_SEQ)
+        LEFT JOIN CMN_PLANT CP ON PSC.SITE_ID = CP.SITE_ID
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        AND IFNULL(PSC.MNG_STRT_DT, '') != ''
+        <if test="userName != null and  userName != ''">
+            AND (
+            CU.USER_NAME LIKE CONCAT('%',#{userName},'%')  OR   /* 사용자명 ,ID */
+            PSC.ADDR LIKE CONCAT('%',#{addr},'%') OR            /* 주소 */
+            PSC.SITE_ID LIKE CONCAT('%',#{siteId},'%')          /* 사이트 id */
+            )
+        </if>
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        <if test="eqmtStatus != null and  eqmtStatus != ''">
+            AND CP.PLANT_STATUS  = #{eqmtStatus}
+        </if>
+
+    </select>
+
+    <select id="mobOperation" parameterType="com.rest.api.model.pp.PrjSiteVO" resultType="com.rest.api.model.pp.MobileOperationDetail">
+        SELECT
+            PSC.SITE_ID                     AS siteId,
+            CU.USER_NAME                    AS userName,
+            CU.TEL_NO                       AS userPhone,
+            CU.EMAIL                        AS userEmail,
+            PSC.RESC_GUBN                   AS rescGubn,
+            PSC.ADDR                        AS addr,
+            IFNULL(PSC.PV_INST_CAPA, 0)     AS pvCapa,
+            IFNULL(PSC.ESS_INST_CAPA, 0)    AS essCapa,
+            IFNULL(PSC.MNG_STRT_DT, 0)      AS mngStrtDt,
+            PSP.MODL_MNFT_GUBN              AS modlMnftGubn,
+            PSP.INVT_MNFT_GUBN              AS invtMnftGubn,
+            PSP.COMU_EQMT_GUBN    	        AS comuEqmtGubn,
+            CU2.USER_NAME                   AS mngUserName,
+            CP.TIMEZONE                    AS timeZone,
+            PSC.LATD                        AS latd,        /* 위도 */
+            PSC.LGTD                        AS lgtd,       /* 경도 */
+            ROUND(IFNULL((PSG.PPA / IFNULL(DATE_FORMAT(LAST_DAY(DATE_FORMAT(NOW(),'%Y%m%d')),'%d'),0 )),0),2)	 AS	goalPpa
+            , ROUND(IFNULL((PSG.GOAL_GENR_CAPA / IFNULL(DATE_FORMAT(LAST_DAY(DATE_FORMAT(NOW(),'%Y%m%d')),'%d'),0 )),0),2)					    AS	goalGenrCapa
+            , ROUND(IFNULL((PSG.ENERGY_YIELD / IFNULL(DATE_FORMAT(LAST_DAY(DATE_FORMAT(NOW(),'%Y%m%d')),'%d'),0 )),0),2)     				    AS	goalEnergyYield					/*Energy Yield (목표대비) */
+            , IFNULL(PSG.IVT_EFFICIENCY, 0)	AS	goalIvt							/*IVT Efficiency(목표대비) (%) */
+        FROM PRJ_SITE_CNRT PSC
+            LEFT JOIN PRJ_SITE_PLAN PSP ON PSC.SITE_ID = PSP.SITE_ID
+            JOIN PRJ_SITE_USER PSU ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+            JOIN PRJ_SITE_USER PSU2 ON (PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD ='ACN004')
+            LEFT JOIN CMN_USER CU ON (PSU.USER_SEQ = CU.USER_SEQ)
+            LEFT JOIN  CMN_USER CU2 ON PSU2.USER_SEQ = CU2.USER_SEQ
+            LEFT JOIN PRJ_SITE_GOAL PSG
+            ON (PSC.SITE_ID = PSG.SITE_ID AND PSG.GOAL_DT = DATE_FORMAT(NOW(),'%Y%m'))
+            LEFT JOIN CMN_PLANT CP
+            ON PSC.SITE_ID = CP.SITE_ID
+        WHERE
+            PSC.DEL_YN = 'N'
+            <if test="siteId != null and  siteId != ''">
+                AND PSC.SITE_ID = #{siteId}
+            </if>
+    </select>
+
+    <select id="siteFaultList" resultType="com.rest.api.model.mo.FailAlarmVo" parameterType="com.rest.api.model.mo.FailAlarmVo">
+        SELECT
+        CFH.SITE_ID AS siteId,
+        IF(IFNULL(CFH.OVER_TIME, '') = '', 'OPS002', 'OPS001') AS status,
+        CFH.FAULT_RESPONSE AS contents,
+        CFH.FAULT_TYPE AS faultType,
+        DATE_FORMAT(CFH.CREATE_TIME, '%Y-%m-%d %H:%i') AS notiDt,
+        DATE_FORMAT(CFH.OVER_TIME, '%Y-%m-%d %H:%i') AS unlockDt,
+        CU.USER_NAME as userName,
+        CU.EMAIL                  AS email,       /* 메일 */
+        CU.TEL_NO                 AS telNo,       /* 전화번호 */
+        PSC.ADDR 				  AS addr,		/* 주소 */
+        PSU.USER_SEQ              as userSeq,
+        PSU2.USER_SEQ             AS workOrdUserSeq,
+        CU2.USER_NAME             AS workOrdUserName,
+        CP.TIMEZONE               AS timeZone
+        FROM CMN_FAIL_HIST CFH
+            LEFT JOIN  PRJ_SITE_CNRT PSC ON (PSC.SITE_ID = CFH.SITE_ID)
+            JOIN PRJ_SITE_USER PSU ON (PSU.SITE_ID = CFH.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+            LEFT JOIN CMN_USER CU ON (PSU.USER_SEQ = CU.USER_SEQ)
+            LEFT JOIN PRJ_SITE_USER PSU2 ON (PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD = 'ACN004')
+            LEFT JOIN CMN_USER CU2 ON (PSU2.USER_SEQ = CU2.USER_SEQ)
+            LEFT JOIN CMN_PLANT CP ON CFH.SITE_ID = CP.SITE_ID
+        WHERE 1=1
+        <if test="siteId != null and  siteId != ''">
+            AND (
+                CU.USER_NAME LIKE CONCAT('%',#{userName},'%')  OR   /* 사용자명 ,ID */
+                CFH.SITE_ID LIKE CONCAT('%',#{siteId},'%')                            /* 사이트 id */
+            )
+        </if>
+        <if test="status == 'OPS001'">
+            AND IFNULL(CFH.OVER_TIME, '') != ''
+        </if>
+        <if test="status == 'OPS002'">
+            AND IFNULL(CFH.OVER_TIME, '') = ''
+        </if>
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR CFH.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        ORDER BY CREATE_TIME ASC
+        <if test="pagePer != null and pagePer != 0">
+            LIMIT #{pageStart}, #{pagePer}
+        </if>
+    </select>
+    <select id="siteFaultCnt" resultType="com.rest.api.model.pp.PageVo" parameterType="com.rest.api.model.mo.FailAlarmVo">
+        SELECT
+            COUNT(*) AS totalCnt
+        FROM CMN_FAIL_HIST CFH
+        LEFT JOIN  PRJ_SITE_CNRT PSC ON (PSC.SITE_ID = CFH.SITE_ID)
+        JOIN PRJ_SITE_USER PSU ON (PSU.SITE_ID = CFH.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        LEFT JOIN CMN_USER CU ON (PSU.USER_SEQ = CU.USER_SEQ)
+        LEFT JOIN PRJ_SITE_USER PSU2 ON (PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD = 'ACN004')
+        LEFT JOIN CMN_USER CU2 ON (PSU2.USER_SEQ = CU2.USER_SEQ)
+        LEFT JOIN CMN_PLANT CP ON CFH.SITE_ID = CP.SITE_ID
+        WHERE 1=1
+        <if test="siteId != null and  siteId != ''">
+            AND (
+            CU.USER_NAME LIKE CONCAT('%',#{userName},'%')  OR   /* 사용자명 ,ID */
+            CFH.SITE_ID LIKE CONCAT('%',#{siteId},'%')                            /* 사이트 id */
+            )
+        </if>
+        <if test="status == 'OPS001'">
+            AND IFNULL(CFH.OVER_TIME, '') != ''
+        </if>
+        <if test="status == 'OPS002'">
+            AND IFNULL(CFH.OVER_TIME, '') = ''
+        </if>
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR CFH.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+    </select>
+    <select id="mobPrjSiteList" parameterType="com.rest.api.model.pp.PrjSiteVO" resultType="com.rest.api.model.pp.MobilePrjSiteVo">
+        SELECT
+        PSC.SITE_ID             AS siteId       /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        , PSU.USER_SEQ          AS userSeq      /* 사용자번호 */
+        , CU.USER_ID            AS userId       /* 사용자ID */
+        , CU.USER_NAME          AS userName     /* 사용자명 */
+        , PSC.ADDR              as addr         /* 주소 */
+        , PSC.PROCESS           as process      /* 단계 */
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        JOIN PRJ_SITE_USER PSU2
+        ON (PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD ='ACN003'
+        )
+        LEFT JOIN CMN_USER CU
+        ON (PSU.USER_SEQ = CU.USER_SEQ)
+        LEFT JOIN CMN_USER CU2
+        ON (PSU2.USER_SEQ = CU2.USER_SEQ)
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        <if test="process != null and  process != ''">
+            AND PSC.PROCESS = #{process}   /* 단계 */
+        </if>
+        <if test="siteId != null and  siteId != ''">
+            AND (
+            CU.USER_NAME LIKE CONCAT('%',#{userName},'%')  OR   /* 사용자명 ,ID */
+            PSC.SITE_ID LIKE CONCAT('%',#{siteId},'%')                            /* 사이트 id */
+            )
+        </if>
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        ORDER BY SUBSTRING(PSC.SITE_ID,8,11) DESC
+        <if test="pagePer != null and pagePer != 0">
+            LIMIT #{pageStart}, #{pagePer}
+        </if>
+    </select>
+    <select id="mobPrjSiteCnt" parameterType="com.rest.api.model.pp.PrjSiteVO" resultType="com.rest.api.model.pp.PageVo">
+        SELECT
+            Count(*) as totalCnt
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        JOIN PRJ_SITE_USER PSU2 ON (PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD ='ACN003')
+        LEFT JOIN CMN_USER CU ON (PSU.USER_SEQ = CU.USER_SEQ)
+        LEFT JOIN CMN_USER CU2 ON (PSU2.USER_SEQ = CU2.USER_SEQ)
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        <if test="process != null and  process != ''">
+            AND PSC.PROCESS = #{process}   /* 단계 */
+        </if>
+        <if test="siteId != null and  siteId != ''">
+            AND (
+            CU.USER_NAME LIKE CONCAT('%',#{userName},'%')  OR   /* 사용자명 ,ID */
+            PSC.SITE_ID LIKE CONCAT('%',#{siteId},'%')                            /* 사이트 id */
+            )
+        </if>
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+            <if test="siteIds != null and  siteIds != ''">
+                OR PSC.SITE_ID IN (
+                <foreach collection="siteIds" item="item" index="index" separator=",">
+                    '${item}'
+                </foreach>
+                )
+            </if>
+        )
+    </select>
+</mapper>
+
+

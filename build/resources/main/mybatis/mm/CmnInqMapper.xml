@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.rest.api.service.mm.CmnInqMapper">
+
+
+    <select id="inqRoleList" parameterType="com.rest.api.model.mm.CmnInqRoleVO" resultType="com.rest.api.model.mm.CmnInqRoleVO">
+        SELECT
+            INQ_GRP_ID  	AS	inqGrpId	/*	조회그룹ID */
+            , INQ_GRP_NAME  AS inqGrpName	/*	조회그룹명 */
+            , INQ_ORD 		AS	inqOrd		/*	조회순서 */
+        FROM CMN_INQ_ROLE
+
+    </select>
+
+
+    <insert id="inqRoleInsert" parameterType="com.rest.api.model.mm.CmnInqRoleInsert" >
+        INSERT INTO CMN_INQ_ROLE
+        (
+            INQ_GRP_ID  	    /* 조회그룹ID */
+            , LAST_CHNG_USEQ    /* 최종작업자번호 */
+            , INQ_GRP_NAME	    /* 조회그룹명 */
+            , INQ_ORD		    /* 조회순서 */
+        )
+        VALUES
+        (
+             (SELECT IFNULL(MAX(cir.INQ_GRP_ID*1),0)+1 FROM CMN_INQ_ROLE cir)  	/* 조회그룹ID */
+            , #{lastChngUseq} 		/* 최종작업자번호 */
+            , #{inqGrpName}	    /* 조회그룹명 */
+            , (SELECT IFNULL(MAX(cir2.INQ_ORD*1),0)+1 FROM CMN_INQ_ROLE cir2)		/* 조회순서 */
+        )
+    </insert>
+
+    <select id="inrlSiteList" parameterType="com.rest.api.model.mm.CmnInqRoleVO" resultType="com.rest.api.model.mm.CmnInqRoleVO">
+        SELECT
+            SITE_ID		AS siteId	/* 사이트ID */
+        FROM CMN_INRL_SITE
+        WHERE 1=1
+        AND INQ_GRP_ID = #{inqGrpId}
+
+    </select>
+
+    <select id="prjSiteList" parameterType="com.rest.api.model.mm.CmnInqRoleVO" resultType="com.rest.api.model.mm.CmnInqRoleVO">
+        SELECT
+            SITE_ID		AS siteId	/* 사이트ID */
+        FROM PRJ_SITE_CNRT PSC
+        WHERE 1=1
+        AND DEL_YN = 'N'
+        AND NOT EXISTS (SELECT INQ_GRP_ID FROM CMN_INRL_SITE CIS  WHERE 1=1 AND CIS.SITE_ID = PSC.SITE_ID AND CIS.INQ_GRP_ID = #{inqGrpId} )
+    </select>
+    
+    <delete id="inrlSiteDelete" parameterType="com.rest.api.model.mm.CmnInqRoleVO">
+        DELETE FROM CMN_INRL_SITE
+        WHERE 1=1
+        AND INQ_GRP_ID = #{inqGrpId}
+        <if test="siteId != null">
+            and SITE_ID = #{siteId}
+        </if>
+    </delete>
+
+    <insert id="inrlSiteInsert" parameterType="com.rest.api.model.mm.CmnInrlSiteInsert" >
+        INSERT CMN_INRL_SITE
+        (
+            INQ_GRP_ID		    /* 조회그룹ID */
+            , SITE_ID			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            , LAST_CHNG_USEQ	/* 최종작업자번호 */
+        )
+        VALUES
+        (
+             #{inqGrpId}		/* 조회그룹ID */
+            , #{siteId}			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            , #{lastChngUseq}        /* 최종작업자번호 */
+        )
+    </insert>
+
+
+    <delete id="siteDelinrlSiteDelete" parameterType="com.rest.api.model.mm.CmnInqRoleVO">
+        DELETE FROM CMN_INRL_SITE
+        WHERE 1=1
+        AND SITE_ID = #{siteId}
+    </delete>
+
+
+    <select id="inqGrpYn" parameterType="String" resultType="String">
+       SELECT
+        CASE
+        WHEN COUNT(USER_SEQ) > 0 THEN 'Y'
+        ELSE 'N'
+        END useYn
+        FROM CMN_USER
+        WHERE 1=1
+        AND DEL_YN= 'N'
+        AND INQ_GRP_ID = #{inqGrpId}
+
+    </select>
+
+
+    <delete id="inqRoleDelete" parameterType="String">
+        DELETE FROM CMN_INQ_ROLE
+        WHERE 1=1
+         AND INQ_GRP_ID = #{inqGrpId}
+    </delete>
+
+    <delete id="inqGrpRoleDelete" parameterType="String">
+        DELETE FROM CMN_INRL_SITE
+        WHERE 1=1
+        AND INQ_GRP_ID = #{inqGrpId}
+    </delete>
+</mapper>

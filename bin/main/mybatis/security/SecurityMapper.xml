@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.rest.api.service.security.SecurityMapper">
+
+
+
+
+    <select id="userInfo" parameterType="String" resultType="com.rest.api.model.security.SecurityVO">
+    SELECT
+         USER_ID AS userId
+        ,USER_NAME AS username
+        ,PSWD AS password
+        ,USER_SEQ AS userSeq
+        ,MENU_ROLE_ID AS menuRoleId
+        ,INQ_GRP_ID AS inqGrpId
+        ,TEL_NO AS telNo
+        ,EMAIL AS email
+        ,USER_LVL_CD AS userLvlCd
+         ,USER_NAME AS userNm
+    FROM CMN_USER
+    WHERE 1 =1
+    AND USER_ID = #{userId}
+    AND USE_YN = 'Y'
+    AND DEL_YN = 'N'
+    </select>
+
+    <select id="userInfoSeq" parameterType="String" resultType="com.rest.api.model.security.SecurityVO">
+    SELECT
+         USER_ID AS userId
+        ,USER_NAME AS username
+        ,PSWD AS password
+        ,USER_SEQ AS userSeq
+    FROM CMN_USER
+    WHERE 1 =1
+    AND USER_SEQ = #{userSeq}
+    AND USE_YN = 'Y'
+    AND DEL_YN = 'N'
+    </select>
+
+</mapper>

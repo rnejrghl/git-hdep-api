@@ -1,0 +1,1066 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.rest.api.service.wo.MtnWkodMapper">
+
+    <select id="workOrderCnt" parameterType="com.rest.api.model.wo.MthWkodVO"  resultType="com.rest.api.model.wo.MthWkodCntVO">
+        SELECT
+        (SELECT COUNT(MWH.SITE_ID)
+        FROM MTN_WKOD_HIST MWH
+        JOIN PRJ_SITE_CNRT PSC
+        ON (MWH.SITE_ID = PSC.SITE_ID AND PSC.DEL_YN = 'N')
+        JOIN PRJ_SITE_USER PSU
+        ON (MWH.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN004')
+        WHERE 1=1
+        AND MWH.WORK_ORD_TYP = 'WT0001'
+        AND MWH.DEL_YN = 'N'
+        AND (PSU.USER_SEQ = #{siteUserSeq} /* 사용자번호 */
+
+        <if test="siteIds != null and  siteIds != ''">
+            OR MWH.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        ) AS wt0001Cnt
+        ,
+        (SELECT COUNT(MWH.SITE_ID)
+        FROM MTN_WKOD_HIST MWH
+        JOIN PRJ_SITE_CNRT PSC
+        ON (MWH.SITE_ID = PSC.SITE_ID AND PSC.DEL_YN = 'N')
+        JOIN PRJ_SITE_USER PSU
+        ON (MWH.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN004')
+        WHERE 1=1
+        AND MWH.WORK_ORD_TYP = 'WT0002'
+        AND MWH.DEL_YN = 'N'
+        AND (PSU.USER_SEQ = #{siteUserSeq} /* 사용자번호 */
+
+        <if test="siteIds != null and  siteIds != ''">
+            OR MWH.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        ) AS wt0002Cnt
+        ,
+        (SELECT COUNT(MWH.SITE_ID)
+        FROM MTN_WKOD_HIST MWH
+        JOIN PRJ_SITE_CNRT PSC
+        ON (MWH.SITE_ID = PSC.SITE_ID AND PSC.DEL_YN = 'N')
+        JOIN PRJ_SITE_USER PSU
+        ON (MWH.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN004')
+        WHERE 1=1
+        AND MWH.WORK_ORD_TYP = 'WT0003'
+        AND MWH.DEL_YN = 'N'
+        AND (PSU.USER_SEQ = #{siteUserSeq} /* 사용자번호 */
+
+        <if test="siteIds != null and  siteIds != ''">
+            OR MWH.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        ) AS wt0003Cnt
+        ,
+        (SELECT COUNT(MWH.SITE_ID)
+        FROM MTN_WKOD_HIST MWH
+        JOIN PRJ_SITE_CNRT PSC
+        ON (MWH.SITE_ID = PSC.SITE_ID AND PSC.DEL_YN = 'N')
+        JOIN PRJ_SITE_USER PSU
+        ON (MWH.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN004')
+        WHERE 1=1
+        AND MWH.WORK_ORD_TYP = 'WT0004'
+        AND MWH.DEL_YN = 'N'
+        AND (PSU.USER_SEQ = #{siteUserSeq} /* 사용자번호 */
+
+        <if test="siteIds != null and  siteIds != ''">
+            OR MWH.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        ) AS wt0004Cnt
+        ,
+        (SELECT COUNT(MWH.SITE_ID)
+        FROM MTN_WKOD_HIST MWH
+        JOIN PRJ_SITE_CNRT PSC
+        ON (MWH.SITE_ID = PSC.SITE_ID AND PSC.DEL_YN = 'N')
+        JOIN PRJ_SITE_USER PSU
+        ON (MWH.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN004')
+        WHERE 1=1
+        AND MWH.WORK_ORD_STAT = 'WS0001'
+        AND MWH.DEL_YN = 'N'
+        AND (PSU.USER_SEQ = #{siteUserSeq} /* 사용자번호 */
+
+        <if test="siteIds != null and  siteIds != ''">
+            OR MWH.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        ) AS ws0001Cnt
+        ,
+        (SELECT COUNT(MWH.SITE_ID)
+        FROM MTN_WKOD_HIST MWH
+        JOIN PRJ_SITE_CNRT PSC
+        ON (MWH.SITE_ID = PSC.SITE_ID AND PSC.DEL_YN = 'N')
+        JOIN PRJ_SITE_USER PSU
+        ON (MWH.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN004')
+        WHERE 1=1
+        AND MWH.WORK_ORD_STAT = 'WS0002'
+        AND MWH.DEL_YN = 'N'
+        AND (PSU.USER_SEQ = #{siteUserSeq} /* 사용자번호 */
+
+        <if test="siteIds != null and  siteIds != ''">
+            OR MWH.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        ) AS ws0002Cnt
+        ,
+        (SELECT COUNT(MWH.SITE_ID)
+        FROM MTN_WKOD_HIST MWH
+        JOIN PRJ_SITE_CNRT PSC
+        ON (MWH.SITE_ID = PSC.SITE_ID AND PSC.DEL_YN = 'N')
+        JOIN PRJ_SITE_USER PSU
+        ON (MWH.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN004')
+        WHERE 1=1
+        AND MWH.WORK_ORD_STAT = 'WS0003'
+        AND MWH.DEL_YN = 'N'
+        AND (PSU.USER_SEQ = #{siteUserSeq} /* 사용자번호 */
+
+        <if test="siteIds != null and  siteIds != ''">
+            OR MWH.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        ) AS ws0003Cnt
+        ,
+        (SELECT COUNT(MWH.SITE_ID)
+        FROM MTN_WKOD_HIST MWH
+        JOIN PRJ_SITE_CNRT PSC
+        ON (MWH.SITE_ID = PSC.SITE_ID AND PSC.DEL_YN = 'N')
+        JOIN PRJ_SITE_USER PSU
+        ON (MWH.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN004')
+        WHERE 1=1
+        AND MWH.WORK_ORD_STAT = 'WS0004'
+        AND MWH.DEL_YN = 'N'
+        AND (PSU.USER_SEQ = #{siteUserSeq} /* 사용자번호 */
+
+        <if test="siteIds != null and  siteIds != ''">
+            OR MWH.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+        ) AS ws0004Cnt
+        FROM DUAL
+    </select>
+
+    <select id="workOrderList" parameterType="com.rest.api.model.wo.MthWkodVO" resultType="com.rest.api.model.wo.MthWkodVO">
+        SELECT
+        publDtti 		    /* 발행일시 */
+        ,workOrdId 		    /* 작업지시ID */
+        ,workOrdTyp 		/* 작업지시형태 (GRP_CD : CDK-00009 (고장/통신장애/특별점검 등)) */
+        ,workOrdStat 	    /* 작업지시상태 (GRP_CD : CDK-00010) */
+        ,siteId 			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        ,siteUserSeq
+        ,siteUserName
+        ,workOrdUserSeq     /* 사용자번호 (해당사이트의 OM담당자사용자번호) */
+        ,workOrdUserName
+        ,workOrdUserTelNo
+        ,cmplReqDt		    /* 완료요청일 (발행일 + 3일로 default 설정) */
+        ,cnfmDt 			/* 확인일 */
+        ,cmplPredDt 		/* 완료예정일 */
+        ,prcsCmplDt 		/* 처리완료일 */
+        ,rsltRegYn          /* 결과등록여부 */
+        ,addr          /* 주소 */
+        FROM(
+            SELECT
+                DATE_FORMAT( MWH.PUBL_DTTI, '%Y-%m-%d %H:%i')	AS publDtti 		/* 발행일시 */
+                ,MWH.WORK_ORD_ID 			AS workOrdId 		/* 작업지시ID */
+                ,MWH.WORK_ORD_TYP 		    AS workOrdTyp 		/* 작업지시형태 (GRP_CD : CDK-00009 (고장/통신장애/특별점검 등)) */
+                ,MWH.WORK_ORD_STAT 		    AS workOrdStat 	    /* 작업지시상태 (GRP_CD : CDK-00010) */
+                ,MWH.SITE_ID 				AS siteId 			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+                ,PSCU.USER_SEQ 				AS siteUserSeq
+                ,PSCU.USER_NAME 			AS siteUserName
+                ,MWH.USER_SEQ 				AS workOrdUserSeq   /* 사용자번호 (해당사이트의 OM담당자사용자번호) */
+                ,MWCU.USER_NAME 			AS workOrdUserName
+                ,MWCU.TEL_NO				AS workOrdUserTelNo
+                ,MWH.CMPL_REQ_DT  		    AS cmplReqDt		/* 완료요청일 (발행일 + 3일로 default 설정) */
+                ,MWH.CNFM_DT 				AS cnfmDt 			/* 확인일 */
+                ,MWH.CMPL_PRED_DT 			AS cmplPredDt 		/* 완료예정일 */
+                ,MWH.PRCS_CMPL_DT			AS prcsCmplDt 		/* 처리완료일 */
+                ,MWH.QA_CMPL_DT			    AS qaCmplDt 		/* Qa 완료일 */
+                ,PSC.ADDR       			AS addr 		/* 주소 */
+                ,CASE WHEN (SELECT COUNT(*) FROM MTN_WKOD_HDTL MWHD WHERE MWHD.SITE_ID = MWH.SITE_ID AND MWHD.WORK_ORD_ID = MWH.WORK_ORD_ID ) > 0 THEN 'Y'
+                ELSE 'N' END AS rsltRegYn /* 결과등록여부 */
+            FROM MTN_WKOD_HIST MWH
+            JOIN PRJ_SITE_CNRT PSC
+            ON (MWH.SITE_ID = PSC.SITE_ID AND PSC.DEL_YN = 'N')
+            JOIN PRJ_SITE_USER PSU
+            ON (MWH.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD = 'ACN005')
+            JOIN CMN_USER MWCU
+            ON (MWCU.USER_SEQ = MWH.USER_SEQ )
+            JOIN CMN_USER PSCU
+            ON (PSU.USER_SEQ = PSCU.USER_SEQ)
+            WHERE 1=1
+            AND MWH.DEL_YN = 'N'
+            AND (PSU.USER_SEQ = #{siteUserSeq} /* 사용자번호 */
+                OR MWH.USER_SEQ = #{siteUserSeq} /* 사용자번호 */
+            <if test="siteIds != null and  siteIds != ''">
+                OR MWH.SITE_ID IN (
+                <foreach collection="siteIds" item="item" index="index" separator=",">
+                    '${item}'
+                </foreach>
+                )
+            </if>
+            )
+
+            <if test="publDtti != null and  publDtti != '' and !mobile">
+                AND DATE_FORMAT(MWH.PUBL_DTTI, '%Y%m%d') = #{publDtti}
+            </if>
+            <if test="workOrdId != null and  workOrdId != '' and !mobile">
+                AND MWH.WORK_ORD_ID LIKE CONCAT('%', #{workOrdId},'%') 	/* 작업지시ID */
+            </if>
+            <if test="workOrdTyp != null and  workOrdTyp != '' and !mobile">
+                AND MWH.WORK_ORD_TYP 		= #{workOrdTyp} 		/* 작업지시형태 (GRP_CD : CDK-00009 (고장/통신장애/특별점검 등)) */
+            </if>
+            <if test="workOrdStat != null and  workOrdStat != '' and !mobile">
+                AND MWH.WORK_ORD_STAT 		= #{workOrdStat} 		/* 작업지시상태 (GRP_CD : CDK-00010) */
+            </if>
+            <if test="siteId != null and  siteId != ''">
+                AND MWH.SITE_ID LIKE CONCAT('%', #{siteId},'%') 		/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            </if>
+
+            <if test="cmplPredDt != null and  cmplPredDt != '' and !mobile">
+                AND MWH.CMPL_PRED_DT 		= #{cmplPredDt} 		/* 완료예정일 */
+            </if>
+            <if test="cnfmDt != null and  cnfmDt != '' and !mobile">
+                AND MWH.CNFM_DT 			= #{cnfmDt} 			/* 확인일 */
+            </if>
+            <if test="prcsCmplDt != null and  prcsCmplDt != '' and !mobile">
+                AND MWH.PRCS_CMPL_DT		= #{prcsCmplDt} 		/* 처리완료일 */
+            </if>
+
+            <if test="publStartDt != null and  publStartDt != '' and publEndDt != null and  publEndDt != '' and !mobile">
+                AND DATE_FORMAT(MWH.PUBL_DTTI, '%Y%m%d')	BETWEEN  #{publStartDt} AND  #{publEndDt}		/* 발행일 */
+            </if>
+            
+            <if test="workOrdUserName != null and  workOrdUserName != '' and !mobile">
+            	AND MWCU.USER_NAME LIKE CONCAT('%', #{workOrdUserName},'%')
+	        </if>
+	        
+	        <if test="siteUserName != null and  siteUserName != '' and !mobile">
+	            AND PSCU.USER_NAME LIKE CONCAT('%', #{siteUserName},'%')
+	        </if>
+	        
+	        <!-- 모바일용 시작 -->
+	        
+	        <if test="publDtti != null and  publDtti != '' and mobile">
+                OR DATE_FORMAT(MWH.PUBL_DTTI, '%Y%m%d') = #{publDtti}
+            </if>
+            <if test="workOrdId != null and  workOrdId != '' and mobile">
+                OR MWH.WORK_ORD_ID LIKE CONCAT('%', #{workOrdId},'%') 	/* 작업지시ID */
+            </if>
+            <if test="workOrdTyp != null and  workOrdTyp != '' and mobile">
+                OR MWH.WORK_ORD_TYP 		= #{workOrdTyp} 		/* 작업지시형태 (GRP_CD : CDK-00009 (고장/통신장애/특별점검 등)) */
+            </if>
+            <if test="workOrdStat != null and  workOrdStat != '' and mobile">
+                OR MWH.WORK_ORD_STAT 		= #{workOrdStat} 		/* 작업지시상태 (GRP_CD : CDK-00010) */
+            </if>
+            <if test="siteId != null and  siteId != '' and mobile">
+                OR MWH.SITE_ID LIKE CONCAT('%', #{siteId},'%') 		/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            </if>
+
+            <if test="cmplPredDt != null and  cmplPredDt != '' and mobile">
+                OR MWH.CMPL_PRED_DT 		= #{cmplPredDt} 		/* 완료예정일 */
+            </if>
+            <if test="cnfmDt != null and  cnfmDt != '' and mobile">
+                OR MWH.CNFM_DT 			= #{cnfmDt} 			/* 확인일 */
+            </if>
+            <if test="prcsCmplDt != null and  prcsCmplDt != '' and mobile">
+                OR MWH.PRCS_CMPL_DT		= #{prcsCmplDt} 		/* 처리완료일 */
+            </if>
+
+            <if test="publStartDt != null and  publStartDt != '' and publEndDt != null and  publEndDt != ''  and mobile">
+                OR DATE_FORMAT(MWH.PUBL_DTTI, '%Y%m%d')	BETWEEN  #{publStartDt} AND  #{publEndDt}		/* 발행일 */
+            </if>
+            
+            <if test="workOrdUserName != null and  workOrdUserName != '' and mobile">
+            	OR MWCU.USER_NAME LIKE CONCAT('%', #{workOrdUserName},'%')
+	        </if>
+	        
+	        <if test="siteUserName != null and  siteUserName != '' and mobile">
+	            OR PSCU.USER_NAME LIKE CONCAT('%', #{siteUserName},'%')
+	        </if>
+	        
+	        <!-- 모바일용 끝 -->
+	        
+        GROUP BY MWH.WORK_ORD_ID
+        ) data
+        WHERE 1=1
+        <if test="rsltRegYn != null and  rsltRegYn != '' ">
+            AND rsltRegYn = #{rsltRegYn}
+        </if>
+        ORDER BY publDtti DESC
+        <if test="pagePer != null and  pagePer != '' ">
+            LIMIT #{pageStart}, #{pagePer}
+        </if>
+    </select>
+    <select id="workOrderPage" parameterType="com.rest.api.model.wo.MthWkodVO" resultType="com.rest.api.model.wo.MthWkodCntVO">
+        SELECT
+            count(*) as TotalCnt
+        FROM(
+        SELECT
+        DATE_FORMAT( MWH.PUBL_DTTI, '%Y-%m-%d %H:%i')	AS publDtti 		/* 발행일시 */
+        ,MWH.WORK_ORD_ID 			AS workOrdId 		/* 작업지시ID */
+        ,MWH.WORK_ORD_TYP 		    AS workOrdTyp 		/* 작업지시형태 (GRP_CD : CDK-00009 (고장/통신장애/특별점검 등)) */
+        ,MWH.WORK_ORD_STAT 		    AS workOrdStat 	    /* 작업지시상태 (GRP_CD : CDK-00010) */
+        ,MWH.SITE_ID 				AS siteId 			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        ,PSCU.USER_SEQ 				AS siteUserSeq
+        ,PSCU.USER_NAME 			AS siteUserName
+        ,MWH.USER_SEQ 				AS workOrdUserSeq   /* 사용자번호 (해당사이트의 OM담당자사용자번호) */
+        ,MWCU.USER_NAME 			AS workOrdUserName
+        ,MWCU.TEL_NO				AS workOrdUserTelNo
+        ,MWH.CMPL_REQ_DT  		    AS cmplReqDt		/* 완료요청일 (발행일 + 3일로 default 설정) */
+        ,MWH.CNFM_DT 				AS cnfmDt 			/* 확인일 */
+        ,MWH.CMPL_PRED_DT 			AS cmplPredDt 		/* 완료예정일 */
+        ,MWH.PRCS_CMPL_DT			AS prcsCmplDt 		/* 처리완료일 */
+        ,CASE WHEN (SELECT COUNT(*) FROM MTN_WKOD_HDTL MWHD WHERE MWHD.SITE_ID = MWH.SITE_ID AND MWHD.WORK_ORD_ID = MWH.WORK_ORD_ID ) > 0 THEN 'Y'
+        ELSE 'N' END AS rsltRegYn /* 결과등록여부 */
+        FROM MTN_WKOD_HIST MWH
+        JOIN PRJ_SITE_CNRT PSC
+        ON (MWH.SITE_ID = PSC.SITE_ID AND PSC.DEL_YN = 'N')
+        JOIN PRJ_SITE_USER PSU
+        ON (MWH.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD = 'ACN005')
+        JOIN CMN_USER MWCU
+        ON (MWCU.USER_SEQ = MWH.USER_SEQ)
+        JOIN CMN_USER PSCU
+        ON (PSU.USER_SEQ = PSCU.USER_SEQ)
+        WHERE 1=1
+        AND MWH.DEL_YN = 'N'
+        AND (PSU.USER_SEQ = #{siteUserSeq} /* 사용자번호 */
+        OR MWH.USER_SEQ = #{siteUserSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR MWH.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+
+        <if test="publDtti != null and  publDtti != '' and !mobile">
+            AND DATE_FORMAT(MWH.PUBL_DTTI, '%Y%m%d') = #{publDtti}
+        </if>
+        <if test="workOrdId != null and  workOrdId != '' and !mobile">
+            AND MWH.WORK_ORD_ID LIKE CONCAT('%', #{workOrdId},'%') 	/* 작업지시ID */
+        </if>
+        <if test="workOrdTyp != null and  workOrdTyp != '' and !mobile">
+            AND MWH.WORK_ORD_TYP 		= #{workOrdTyp} 		/* 작업지시형태 (GRP_CD : CDK-00009 (고장/통신장애/특별점검 등)) */
+        </if>
+        <if test="workOrdStat != null and  workOrdStat != '' and !mobile">
+            AND MWH.WORK_ORD_STAT 		= #{workOrdStat} 		/* 작업지시상태 (GRP_CD : CDK-00010) */
+        </if>
+        <if test="siteId != null and  siteId != '' and !mobile">
+            AND MWH.SITE_ID LIKE CONCAT('%', #{siteId},'%') 		/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        </if>
+
+        <if test="cmplPredDt != null and  cmplPredDt != '' and !mobile">
+            AND MWH.CMPL_PRED_DT 		= #{cmplPredDt} 		/* 완료예정일 */
+        </if>
+        <if test="cnfmDt != null and  cnfmDt != '' and !mobile">
+            AND MWH.CNFM_DT 			= #{cnfmDt} 			/* 확인일 */
+        </if>
+        <if test="prcsCmplDt != null and  prcsCmplDt != '' and !mobile">
+            AND MWH.PRCS_CMPL_DT		= #{prcsCmplDt} 		/* 처리완료일 */
+        </if>
+
+        <if test="publStartDt != null and  publStartDt != '' and publEndDt != null and  publEndDt != '' and !mobile">
+            AND DATE_FORMAT(MWH.PUBL_DTTI, '%Y%m%d')	BETWEEN  #{publStartDt} AND  #{publEndDt}		/* 발행일 */
+        </if>
+        <if test="workOrdUserName != null and  workOrdUserName != '' and !mobile">
+            AND MWCU.USER_NAME LIKE CONCAT('%', #{workOrdUserName},'%')
+        </if>
+        <if test="siteUserName != null and  siteUserName != '' and !mobile">
+            AND PSCU.USER_NAME LIKE CONCAT('%', #{siteUserName},'%')
+        </if>
+        
+        <!-- 모바일용 시작 -->
+        <if test="publDtti != null and  publDtti != '' and mobile">
+            AND DATE_FORMAT(MWH.PUBL_DTTI, '%Y%m%d') = #{publDtti}
+        </if>
+        <if test="workOrdId != null and  workOrdId != '' and mobile">
+            AND MWH.WORK_ORD_ID LIKE CONCAT('%', #{workOrdId},'%') 	/* 작업지시ID */
+        </if>
+        <if test="workOrdTyp != null and  workOrdTyp != '' and mobile">
+            AND MWH.WORK_ORD_TYP 		= #{workOrdTyp} 		/* 작업지시형태 (GRP_CD : CDK-00009 (고장/통신장애/특별점검 등)) */
+        </if>
+        <if test="workOrdStat != null and  workOrdStat != '' and mobile">
+            AND MWH.WORK_ORD_STAT 		= #{workOrdStat} 		/* 작업지시상태 (GRP_CD : CDK-00010) */
+        </if>
+        <if test="siteId != null and  siteId != '' and mobile">
+            AND MWH.SITE_ID LIKE CONCAT('%', #{siteId},'%') 		/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        </if>
+
+        <if test="cmplPredDt != null and  cmplPredDt != '' and mobile">
+            AND MWH.CMPL_PRED_DT 		= #{cmplPredDt} 		/* 완료예정일 */
+        </if>
+        <if test="cnfmDt != null and  cnfmDt != '' and mobile">
+            AND MWH.CNFM_DT 			= #{cnfmDt} 			/* 확인일 */
+        </if>
+        <if test="prcsCmplDt != null and  prcsCmplDt != '' and mobile">
+            AND MWH.PRCS_CMPL_DT		= #{prcsCmplDt} 		/* 처리완료일 */
+        </if>
+
+        <if test="publStartDt != null and  publStartDt != '' and publEndDt != null and  publEndDt != '' and mobile">
+            AND DATE_FORMAT(MWH.PUBL_DTTI, '%Y%m%d')	BETWEEN  #{publStartDt} AND  #{publEndDt}		/* 발행일 */
+        </if>
+        <if test="workOrdUserName != null and  workOrdUserName != '' and mobile">
+            AND MWCU.USER_NAME LIKE CONCAT('%', #{workOrdUserName},'%')
+        </if>
+        <if test="siteUserName != null and  siteUserName != '' and mobile">
+            AND PSCU.USER_NAME LIKE CONCAT('%', #{siteUserName},'%')
+        </if>
+        <!-- 모바일용 끝 -->
+        GROUP BY MWH.WORK_ORD_ID
+        ) data
+        WHERE 1=1
+        <if test="rsltRegYn != null and  rsltRegYn != '' ">
+            AND rsltRegYn = #{rsltRegYn}
+        </if>
+        ORDER BY publDtti DESC
+    </select>
+
+    <select id="workOrderListExcel" parameterType="com.rest.api.model.wo.MthWkodVO" resultType="com.rest.api.model.wo.MthWkodVO">
+        SELECT
+        publDtti 		    /* 발행일시 */
+        ,workOrdId 		    /* 작업지시ID */
+        ,workOrdTyp 		/* 작업지시형태 (GRP_CD : CDK-00009 (고장/통신장애/특별점검 등)) */
+        ,workOrdStat 	    /* 작업지시상태 (GRP_CD : CDK-00010) */
+        ,siteId 			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        ,siteUserSeq
+        ,siteUserName
+        ,workOrdUserSeq     /* 사용자번호 (해당사이트의 OM담당자사용자번호) */
+        ,workOrdUserName
+        ,workOrdUserTelNo
+        ,cmplReqDt		    /* 완료요청일 (발행일 + 3일로 default 설정) */
+        ,cnfmDt 			/* 확인일 */
+        ,cmplPredDt 		/* 완료예정일 */
+        ,prcsCmplDt 		/* 처리완료일 */
+        ,rsltRegYn          /* 결과등록여부 */
+        FROM(
+        SELECT
+        DATE_FORMAT( MWH.PUBL_DTTI, '%Y-%m-%d %H:%i')	AS publDtti 		/* 발행일시 */
+        ,MWH.WORK_ORD_ID 			AS workOrdId 		/* 작업지시ID */
+        ,CC.CD_NAME 		        AS workOrdTyp 		/* 작업지시형태 (GRP_CD : CDK-00009 (고장/통신장애/특별점검 등)) */
+        ,CC1.CD_NAME  	            AS workOrdStat 	    /* 작업지시상태 (GRP_CD : CDK-00010) */
+        ,MWH.SITE_ID 				AS siteId 			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        ,PSCU.USER_SEQ 				AS siteUserSeq
+        ,PSCU.USER_NAME 			AS siteUserName
+        ,MWH.USER_SEQ 				AS workOrdUserSeq   /* 사용자번호 (해당사이트의 OM담당자사용자번호) */
+        ,MWCU.USER_NAME 			AS workOrdUserName
+        ,MWCU.TEL_NO				AS workOrdUserTelNo
+        ,MWH.CMPL_REQ_DT  		    AS cmplReqDt		/* 완료요청일 (발행일 + 3일로 default 설정) */
+        ,MWH.CNFM_DT 				AS cnfmDt 			/* 확인일 */
+        ,MWH.CMPL_PRED_DT 			AS cmplPredDt 		/* 완료예정일 */
+        ,MWH.PRCS_CMPL_DT			AS prcsCmplDt 		/* 처리완료일 */
+        ,CASE WHEN (SELECT COUNT(*) FROM MTN_WKOD_HDTL MWHD WHERE MWHD.SITE_ID = MWH.SITE_ID AND MWHD.WORK_ORD_ID = MWH.WORK_ORD_ID ) > 0 THEN 'Y'
+        ELSE 'N' END AS rsltRegYn /* 결과등록여부 */
+        FROM MTN_WKOD_HIST MWH
+        JOIN PRJ_SITE_CNRT PSC
+        ON (MWH.SITE_ID = PSC.SITE_ID AND PSC.DEL_YN = 'N')
+        LEFT OUTER JOIN CMN_CMCD CC ON MWH.WORK_ORD_TYP = CC.CD AND CC.GRP_CD = 'CDK-00009'
+        LEFT OUTER JOIN CMN_CMCD CC1 ON MWH.WORK_ORD_STAT  = CC1.CD AND CC1.GRP_CD = 'CDK-00010'
+        JOIN PRJ_SITE_USER PSU
+        ON (MWH.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD  = 'ACN005')
+        JOIN CMN_USER MWCU
+        ON (MWCU.USER_SEQ = MWH.USER_SEQ)
+        JOIN CMN_USER PSCU
+        ON (PSU.USER_SEQ = PSCU.USER_SEQ)
+        WHERE 1=1
+        AND MWH.DEL_YN = 'N'
+        AND (PSU.USER_SEQ = #{siteUserSeq} /* 사용자번호 */
+             OR MWH.USER_SEQ = #{siteUserSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR MWH.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+
+        <if test="publDtti != null and  publDtti != ''">
+            AND DATE_FORMAT(MWH.PUBL_DTTI, '%Y%m%d') = #{publDtti}
+        </if>
+        <if test="workOrdId != null and  workOrdId != ''">
+            AND MWH.WORK_ORD_ID LIKE CONCAT('%', #{workOrdId},'%') 		/* 작업지시ID */
+        </if>
+        <if test="workOrdTyp != null and  workOrdTyp != ''">
+            AND MWH.WORK_ORD_TYP 		= #{workOrdTyp} 		/* 작업지시형태 (GRP_CD : CDK-00009 (고장/통신장애/특별점검 등)) */
+        </if>
+        <if test="workOrdStat != null and  workOrdStat != ''">
+            AND MWH.WORK_ORD_STAT 		= #{workOrdStat} 		/* 작업지시상태 (GRP_CD : CDK-00010) */
+        </if>
+        <if test="siteId != null and  siteId != ''">
+            AND MWH.SITE_ID  LIKE CONCAT('%', #{siteId},'%') 			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        </if>
+
+        <if test="cmplPredDt != null and  cmplPredDt != ''">
+            AND MWH.CMPL_PRED_DT 		= #{cmplPredDt} 		/* 완료예정일 */
+        </if>
+        <if test="cnfmDt != null and  cnfmDt != ''">
+            AND MWH.CNFM_DT 			= #{cnfmDt} 			/* 확인일 */
+        </if>
+        <if test="prcsCmplDt != null and  prcsCmplDt != ''">
+            AND MWH.PRCS_CMPL_DT		= #{prcsCmplDt} 		/* 처리완료일 */
+        </if>
+
+        <if test="publStartDt != null and  publStartDt != '' and publEndDt != null and  publEndDt != '' ">
+            AND DATE_FORMAT(MWH.PUBL_DTTI, '%Y%m%d')	BETWEEN  #{publStartDt} AND  #{publEndDt}		/* 발행일 */
+        </if>
+        
+        <if test="workOrdUserName != null and  workOrdUserName != ''">
+            AND MWCU.USER_NAME LIKE CONCAT('%', #{workOrdUserName},'%')
+	    </if>
+	        
+	    <if test="siteUserName != null and  siteUserName != ''">
+	        AND PSCU.USER_NAME LIKE CONCAT('%', #{siteUserName},'%')
+	    </if>
+	        
+        GROUP BY MWH.WORK_ORD_ID
+        ) data
+        WHERE 1=1
+        <if test="rsltRegYn != null and  rsltRegYn != '' ">
+            AND rsltRegYn = #{rsltRegYn}
+        </if>
+        ORDER BY publDtti DESC
+    </select>
+
+    <select id="wkodHdtl" parameterType="com.rest.api.model.wo.MthWkodHdtlVO" resultType="com.rest.api.model.wo.MthWkodHdtlVO">
+        SELECT
+            MWHD.SITE_ID 				AS siteId		/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            ,MWHD.USER_SEQ 			AS userSeq 		/* 사용자번호 (일련번호 1 ~ 9999999999까지 1씩 증가하는 일련번호 해당사이트의 OM담당자사용자번호) */
+            ,MWHD.WORK_ORD_ID 		AS workOrdId 	/* 작업지시ID */
+            ,MWHD.CHK_SEQ 				AS chkSeq		/* 점검SEQ */
+            ,MWHD.JOB_ITEM 			AS jobItem 		/* 작업사항 */
+            ,MWHD.CHK_ITEM 			AS chkItem 		/* 점검항목 */
+            ,MWHD.CHK_CNTN 			AS chkCntn 		/* 점검내용 */
+            ,MWHD.STAT_GUBN 		   AS statGubn 	/* 상태구분 (01: 양호/02:불량/99:해당없음) */
+            ,MWHD.NOTE 					AS note 			/* 특이사항 */
+        FROM MTN_WKOD_HIST MWHI
+		  JOIN MTN_WKOD_HDTL MWHD
+		  ON  MWHI.SITE_ID		= MWHD.SITE_ID
+        AND MWHI.USER_SEQ		= MWHD.USER_SEQ
+        AND MWHI.WORK_ORD_ID	= MWHD.WORK_ORD_ID
+        WHERE 1=1
+        AND MWHI.DEL_YN			= 'N'
+        AND MWHI.SITE_ID		= #{siteId}
+        AND MWHI.USER_SEQ		= #{userSeq}
+        AND MWHI.WORK_ORD_ID	= #{workOrdId}
+        ORDER BY  chkSeq DESC
+		LIMIT 1
+
+    </select>
+
+    <select id="workOrder" parameterType="com.rest.api.model.wo.MthWkodVO" resultType="com.rest.api.model.wo.MthWkodVO">
+        SELECT
+            DATE_FORMAT( MWH.PUBL_DTTI, '%Y-%m-%d %H:%i') AS publDtti 		/* 발행일시 */
+            ,MWH.WORK_ORD_ID 			AS workOrdId 		/* 작업지시ID */
+            ,MWH.PUBL_USER_SEQ      AS publUserSeq 		/* 발행자번호 */
+            ,PUCU.USER_NAME 			AS publUserName     /* 발생자명 */
+            ,MWH.WORK_ORD_TYP 		AS workOrdTyp		/* 작업지시형태 (GRP_CD : CDK-00009 (고장/통신장애/특별점검 등)) */
+            ,MWH.WORK_ORD_STAT 		AS workOrdStat 	    /* 작업지시상태 (GRP_CD : CDK-00010) */
+            /*,? WORK_ORD_TYP_NM 	 작업지시명 (GRP_CD : CDK-00009 (고장/통신장애/특별점검 등)) */
+            /*,? MWH.WORK_ORD_STAT  작업지시상태명  (GRP_CD : CDK-00010) */
+            ,MWH.SITE_ID 				AS siteId 			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            ,PSU.USER_SEQ 				AS siteUserSeq
+            ,PSCU.USER_NAME 			AS siteUserName
+            ,PSCU.TEL_NO				AS siteUserTelNo
+            ,MWH.USER_SEQ 				AS workOrdUserSeq /* 사용자번호 (해당사이트의 OM담당자사용자번호) */
+            ,MWCU.USER_NAME 			AS workOrdUserName
+            ,MWCU.TEL_NO				AS workOrdUserTelNo
+            ,MWH.CMPL_REQ_DT  		AS cmplReqDt		/* 완료요청일 (발행일 + 3일로 default 설정) */
+            ,CNFM_DT 					AS cnfmDt 			/* 확인일 */
+            ,CMPL_PRED_DT 				AS cmplPredDt 		/* 완료예정일 */
+            ,MWH.PRCS_CMPL_DT			AS prcsCmplDt 		/* 처리완료일 */
+			,MWF.FILE_ID 				AS fileId           /* 파일ID */
+			,MWH.QA_CMPL_DT 			AS qaCmplDt           /* Qa 완료일 */
+			, (SELECT MWJ.note FROM MTN_WKOD_REJECT MWJ WHERE MWJ.WORK_ORD_ID = MWH.WORK_ORD_ID ORDER BY LAST_CHNG_DTTI DESC LIMIT 1 ) AS qaNote
+        FROM MTN_WKOD_HIST MWH
+            JOIN CMN_USER MWCU
+            ON MWCU.USER_SEQ = MWH.USER_SEQ
+            JOIN PRJ_SITE_USER PSU
+            ON PSU.SITE_ID     = MWH.SITE_ID
+            AND PSU.SITE_ULVL_CD ='ACN005'
+            LEFT JOIN CMN_USER PSCU
+            ON PSU.USER_SEQ = PSCU.USER_SEQ
+            LEFT JOIN CMN_USER PUCU
+            ON MWH.PUBL_USER_SEQ = PUCU.USER_SEQ
+            LEFT JOIN MTN_WKOD_FILE MWF
+            ON MWH.USER_SEQ = MWF.USER_SEQ  AND MWH.SITE_ID = MWF.SITE_ID AND MWH.WORK_ORD_ID = MWF.WORK_ORD_ID
+        WHERE 1=1
+        AND MWH.DEL_YN = 'N'
+        AND MWH.SITE_ID		= #{siteId}
+        AND MWH.USER_SEQ	= #{workOrdUserSeq}
+        AND MWH.WORK_ORD_ID	= #{workOrdId}
+
+    </select>
+
+
+    <select id="wkodFile" parameterType="com.rest.api.model.wo.MthWkodFileVO" resultType="com.rest.api.model.wo.MthWkodFileVO">
+        SELECT
+            MWF.SITE_ID 		    AS siteId		/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            ,MWF.USER_SEQ 			AS userSeq 		/* 사용자번호 (일련번호 1 ~ 9999999999까지 1씩 증가하는 일련번호 해당사이트의 OM담당자사용자번호) */
+            ,MWF.WORK_ORD_ID 		AS workOrdId 	/* 작업지시ID */
+            ,MWF.FILE_ID 			AS fileId		/*파일ID*/
+            ,CF.FILE_SEQ			AS fileSeq 		/*파일일련번호*/
+            ,CF.REAL_FILE_NAME		AS realFileName/* 실제파일명 */
+		    ,CF.FILE_PATH			AS filePath 	/* 파일경로 */
+        FROM MTN_WKOD_HIST MWH
+        LEFT JOIN MTN_WKOD_FILE MWF
+        ON  (MWH.SITE_ID			= MWF.SITE_ID
+        AND MWF.DEL_YN = 'N')
+        AND MWH.USER_SEQ		= MWF.USER_SEQ
+        AND MWH.WORK_ORD_ID	= MWF.WORK_ORD_ID
+        LEFT JOIN CMN_FILE CF
+        ON MWF.FILE_ID = CF.FILE_ID
+        WHERE 1=1
+        AND MWH.DEL_YN			='N'
+        AND MWH.SITE_ID 		= #{siteId}			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        AND MWH.USER_SEQ 		= #{userSeq} 		/* 사용자번호 (일련번호 1 ~ 9999999999까지 1씩 증가하는 일련번호 해당사이트의 OM담당자사용자번호) */
+        AND MWH.WORK_ORD_ID 	= #{workOrdId}  	/* 작업지시ID */
+
+    </select>
+
+    <insert id="workOrderInsert" parameterType="com.rest.api.model.wo.MthWkodInsert">
+        <selectKey keyProperty="workOrdId" resultType="String" order="BEFORE">
+            (SELECT CONCAT( #{regnGubn},'AU',date_format(NOW(),'%Y%m'),LPAD(IFNULL(MAX(SUBSTRING(WORK_ORD_ID,15,5)),0)+1,5,0),IFNULL(#{workOrdPublGubn},'B')) FROM MTN_WKOD_HIST PSC WHERE 1=1 AND SUBSTRING(WORK_ORD_ID,1,13) = CONCAT(#{regnGubn},'AU',date_format(NOW(),'%Y%m'))) 		/* 작업지시ID */
+        </selectKey>
+        INSERT INTO MTN_WKOD_HIST
+        (
+            SITE_ID             /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            ,USER_SEQ           /* 사용자번호 (일련번호 1 ~ 9999999999까지 1씩 증가하는 일련번호 해당사이트의 OM담당자사용자번호) */
+            ,WORK_ORD_ID        /* 작업지시ID */
+            ,LAST_CHNG_USEQ     /* 최종작업자번호 */
+            ,WORK_ORD_TYP       /* 작업지시형태 (GRP_CD : CDK-00009 (고장/통신장애/특별점검 등)) */
+            ,NOTI_ID            /* 공지ID (고장점검 - PV:notice001, PV+ESS:notice002, 통신오류 - notice003, 특별점검 - notice004 기본세팅) */
+            ,SMS_CNTN           /* SMS내용 */
+            ,EMAIL_CNTN         /* 메일내용 (메일내용 또는 Work Order내용) */
+            ,PUBL_DTTI          /* 발행일시 */
+            ,CMPL_REQ_DT        /* 완료요청일 (발행일 + 3일로 default 설정) */
+            ,WORK_ORD_STAT      /* 작업지시상태 (GRP_CD : CDK-00010) */
+            ,DEL_YN             /* 삭제여부 */
+            ,PUBL_USER_SEQ      /* 발행자번호 */
+        )
+        VALUES
+        (
+            #{siteId} 			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            ,#{userSeq} 		/* 사용자번호 (일련번호 1 ~ 9999999999까지 1씩 증가하는 일련번호 해당사이트의 OM담당자사용자번호) */
+            ,#{workOrdId}
+            ,#{lastChngUseq} 	/* 최종작업자번호 */
+            ,#{workOrdTyp} 	/* 작업지시형태 */
+            ,(SELECT CASE WHEN #{workOrdTyp} = 'WT0001' THEN notice
+                          WHEN #{workOrdTyp} = 'WT0002' THEN 'notice003'
+                          WHEN #{workOrdTyp} = 'WT0003' THEN 'notice004'
+                          WHEN #{workOrdTyp} = 'WT0004' THEN 'notice005'
+                          ELSE 'notice004'
+                          END
+                        FROM (SELECT CASE WHEN RESC_GUBN = 'A' THEN 'notice001'ELSE 'notice002' END AS notice  FROM PRJ_SITE_CNRT PSC WHERE 1=1 AND SITE_ID	= #{siteId}) NOTI)
+            ,#{smsCntn} 		/* SMS내용 */
+            ,#{mailCntn} 		/* 메일내용 (메일내용 또는 Work Order내용) */
+            ,NOW() 				/* 발행일시 */
+            ,#{cmplReqDt}		/* 완료요청일 (발행일 + 3일로 default 설정) */
+            ,'WS0001' 			/* 작업지시상태 (GRP_CD : CDK-00010) */
+            ,'N' 				/* 삭제여부 */
+            ,#{lastChngUseq} 	/* 최종작업자번호 */
+        )
+
+    </insert>
+
+    <insert id="mthWkodHdtlInsert" parameterType="com.rest.api.model.wo.MthWkodHdtlInsert">
+        INSERT INTO MTN_WKOD_HDTL
+        (
+            SITE_ID /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            ,USER_SEQ /* 사용자번호 (일련번호 1 ~ 9999999999까지 1씩 증가하는 일련번호 해당사이트의 OM담당자사용자번호) */
+            ,WORK_ORD_ID /* 작업지시ID */
+            ,LAST_CHNG_USEQ /* 최종작업자번호 */
+            ,CHK_SEQ /* 점검SEQ */
+            ,JOB_ITEM /* 작업사항 */
+            ,CHK_ITEM /* 점검항목 */
+            ,CHK_CNTN /* 점검내용 */
+            ,STAT_GUBN /* 상태구분 (01: 양호/02:불량/99:해당없음) */
+            ,NOTE /* 특이사항 */
+
+        )
+        VALUES
+        (
+            #{siteId} 			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            ,#{userSeq} 		/* 사용자번호 (일련번호 1 ~ 9999999999까지 1씩 증가하는 일련번호 해당사이트의 OM담당자사용자번호) */
+            ,#{workOrdId} 		/* 작업지시ID */
+            ,#{lastChngUseq} 	/* 최종작업자번호 */
+            ,(SELECT SEQ.seq AS seq FROM(SELECT IFNULL(MAX(CHK_SEQ),0)+1 AS seq FROM MTN_WKOD_HDTL	WHERE SITE_ID = #{siteId} AND USER_SEQ = #{userSeq} AND WORK_ORD_ID = #{workOrdId}) SEQ) /* 점검SEQ */
+            ,#{jobItem} 		/* 작업사항 */
+            ,#{chkItem} 		/* 점검항목 */
+            ,#{chkCntn} 		/* 점검내용 */
+            ,#{statGubn} 		/* 상태구분 (01: 양호/02:불량/99:해당없음) */
+            ,#{note} 			/* 특이사항 */
+        )
+
+    </insert>
+
+    <update id="workOrderHdtlUpdate" parameterType="com.rest.api.model.wo.MthWkodHdtlUpdate">
+        UPDATE MTN_WKOD_HDTL
+        SET LAST_CHNG_USEQ = #{lastChngUseq} 	/* 최종작업자번호 */
+            ,JOB_ITEM 	= #{jobItem} 		    /* 작업사항 */
+            ,CHK_ITEM 	= #{chkItem} 		    /* 점검항목 */
+            ,CHK_CNTN 	= #{chkCntn} 		    /* 점검내용 */
+            ,STAT_GUBN 	= #{statGubn} 		    /* 상태구분 (01: 양호/02:불량/99:해당없음) */
+            ,NOTE 		= #{note} 			    /* 특이사항 */
+        WHERE 1=1
+        AND SITE_ID 		= #{siteId} 		/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        AND USER_SEQ 		= #{userSeq} 		/* 사용자번호 (일련번호 1 ~ 9999999999까지 1씩 증가하는 일련번호 해당사이트의 OM담당자사용자번호) */
+        AND WORK_ORD_ID 	= #{workOrdId} 	    /* 작업지시ID */
+        AND CHK_SEQ 		= #{chkSeq} 		/* 점검SEQ */
+    </update>
+    <insert id="workOrderRejectInsert" parameterType="com.rest.api.model.wo.MthWkodHdtlInsert">
+        INSERT INTO MTN_WKOD_REJECT
+        (
+            SITE_ID /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            ,USER_SEQ /* 사용자번호 (일련번호 1 ~ 9999999999까지 1씩 증가하는 일련번호 해당사이트의 OM담당자사용자번호) */
+            ,WORK_ORD_ID /* 작업지시ID */
+            ,LAST_CHNG_USEQ /* 최종작업자번호 */
+            ,CHK_SEQ /* 점검SEQ */
+            ,JOB_ITEM /* 작업사항 */
+            ,CHK_ITEM /* 점검항목 */
+            ,CHK_CNTN /* 점검내용 */
+            ,STAT_GUBN /* 상태구분 (01: 양호/02:불량/99:해당없음) */
+            ,NOTE /* 특이사항 */
+
+        )
+        VALUES
+        (
+            #{siteId} 			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            ,#{userSeq} 		/* 사용자번호 (일련번호 1 ~ 9999999999까지 1씩 증가하는 일련번호 해당사이트의 OM담당자사용자번호) */
+            ,#{workOrdId} 		/* 작업지시ID */
+            ,#{lastChngUseq} 	/* 최종작업자번호 */
+            ,(SELECT SEQ.seq AS seq FROM(SELECT IFNULL(MAX(CHK_SEQ),0)+1 AS seq FROM MTN_WKOD_HDTL	WHERE SITE_ID = #{siteId} AND USER_SEQ = #{userSeq} AND WORK_ORD_ID = #{workOrdId}) SEQ) /* 점검SEQ */
+            ,#{jobItem} 		/* 작업사항 */
+            ,#{chkItem} 		/* 점검항목 */
+            ,#{chkCntn} 		/* 점검내용 */
+            ,#{statGubn} 		/* 상태구분 (01: 양호/02:불량/99:해당없음) */
+            ,#{note} 			/* 특이사항 */
+        )
+
+    </insert>
+
+    <insert id="wkodFileInsert" parameterType="com.rest.api.model.wo.MthWkodFileInsert">
+        INSERT INTO MTN_WKOD_FILE
+        (
+            SITE_ID				/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            ,USER_SEQ			/* 사용자번호 (일련번호 1 ~ 9999999999까지 1씩 증가하는 일련번호 해당사이트의 OM담당자사용자번호) */
+            ,WORK_ORD_ID		/* 작업지시ID */
+            ,FILE_SEQ 			/* 파일일련번호 */
+            ,LAST_CHNG_USEQ	    /* 최종작업자번호 */
+            ,FILE_ID			/* 파일ID */
+            ,DEL_YN             /* 삭제여부 */
+        )
+        VALUES
+        (
+            #{siteId}			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+            ,#{userSeq}			/* 사용자번호 (일련번호 1 ~ 9999999999까지 1씩 증가하는 일련번호 해당사이트의 OM담당자사용자번호) */
+            ,#{workOrdId}		/* 작업지시ID */
+            ,(SELECT SEQ.seq AS seq FROM (SELECT IFNULL(MAX(FILE_SEQ),0)+1 AS seq FROM MTN_WKOD_FILE	WHERE SITE_ID = #{siteId} AND USER_SEQ = #{userSeq} AND WORK_ORD_ID = #{workOrdId}) SEQ)			/* 파일일련번호 */
+            ,#{lastChngUseq}	/* 최종작업자번호 */
+            ,#{fileId}			/* 파일ID */
+            ,'N'             /* 삭제여부 */
+        )
+
+    </insert>
+
+    <update id="wkodFileUpdate" parameterType="com.rest.api.model.wo.MthWkodFileUpdate">
+        UPDATE MTN_WKOD_FILE
+        SET LAST_CHNG_USEQ = #{lastChngUseq} 	/* 최종작업자번호 */
+            ,FILE_ID 	= #{fileId} 		    /* 파일ID */
+        WHERE 1=1
+        AND SITE_ID 		= #{siteId} 		/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        AND USER_SEQ 		= #{userSeq} 		/* 사용자번호 (일련번호 1 ~ 9999999999까지 1씩 증가하는 일련번호 해당사이트의 OM담당자사용자번호) */
+        AND WORK_ORD_ID 	= #{workOrdId} 	    /* 작업지시ID */
+        AND FILE_SEQ 		= #{fileSeq} 		/* 파일일련번호 */
+
+    </update>
+
+    <update id="workOrderUpdate" parameterType="com.rest.api.model.wo.MthWkodUpdate">
+        UPDATE MTN_WKOD_HIST
+        SET LAST_CHNG_USEQ = #{lastChngUseq} 	/* 최종사용자번호 */
+        <if test="cmplPredDt != null and  cmplPredDt != ''">
+            , CMPL_PRED_DT 	= #{cmplPredDt}		/* 완료예정일 */
+        </if>
+        <if test="prcsCmplDt != null and  prcsCmplDt != ''">
+            , PRCS_CMPL_DT 	= #{prcsCmplDt}		/* 처리완료일 */
+        </if>
+        <if test="cnfmDt != null and  cnfmDt != ''">
+            , CNFM_DT 		= #{cnfmDt}			/* 확인일 */
+        </if>
+        <if test="qaCmplDt != null and  qaCmplDt != ''">
+            , QA_CMPL_DT = #{qaCmplDt}	        /* Qa 완료일 */
+        </if>
+        <if test="workOrdStat != null and  workOrdStat != ''">
+            , WORK_ORD_STAT = #{workOrdStat}	/* 작업지시상태 */
+        </if>
+
+
+        WHERE 1=1
+        AND DEL_YN = 'N'
+        AND SITE_ID = #{siteId}
+        AND USER_SEQ = #{userSeq}
+        AND WORK_ORD_ID = #{workOrdId}
+    </update>
+
+    <update id="workOrderDelete" parameterType="com.rest.api.model.wo.MthWkodDelete">
+        UPDATE MTN_WKOD_HIST
+        SET LAST_CHNG_USEQ = #{lastChngUseq} 	/* 최종사용자번호 */
+            ,DEL_YN = 'Y'
+        WHERE 1=1
+        AND SITE_ID = #{siteId}
+        AND USER_SEQ = #{userSeq}
+        AND WORK_ORD_ID = #{workOrdId}
+        AND WORK_ORD_STAT = 'WS0001'
+    </update>
+
+    <select id="cmnNotiList" resultType="com.rest.api.model.wo.CmnNotiVO">
+        SELECT
+            NOTI_ID 		AS notiId 		/* 공지ID */
+            ,NOTI_NAME 		AS notiName 	/* 공지알람명 */
+            ,SMS_YN 		AS smsYn 		/* SMS여부 */
+            ,SMS_CNTN 		AS smsCntn 	/* SMS내용 */
+            ,MAIL_YN	 	AS mailYn 		/* MAIL여부 */
+            ,MAIL_TITL 		AS mailTitl 	/* 제목 */
+            ,MAIL_HEAD 		AS mailHead  	/* 머릿말 */
+            ,MAIL_CNTN 		AS mailCntn  	/* 본문 */
+            ,MAIL_FTER		AS mailFter  	/* 꼬리말 */
+            ,USER_LVL_CD	AS userLvlCd  /* 사용자등급코드 (코드ID : CDK-00017) */
+        FROM CMN_NOTI
+
+    </select>
+
+    <update id="workFileDelete" parameterType="com.rest.api.model.wo.WorkFileDelete">
+        UPDATE MTN_WKOD_FILE
+        SET LAST_CHNG_USEQ 	= #{lastChngUseq} 	/* 최종작업자번호 */
+            , DEL_YN = 'Y'
+        WHERE 1=1
+        AND SITE_ID 		= #{siteId}			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        AND USER_SEQ		= #{userSeq} 		/* 사용자번호 */
+        AND WORK_ORD_ID		= #{workOrdId} 	    /* 작업지시ID */
+        AND FILE_SEQ 		= #{fileSeq}		/* 파일일련번호 */
+    </update>
+
+    <update id="cmplReqDtUpdate" parameterType="com.rest.api.model.wo.MthWkodUpdate">
+        UPDATE MTN_WKOD_HIST
+        SET LAST_CHNG_USEQ 	= #{lastChngUseq} 	/* 최종작업자번호 */
+            , CMPL_REQ_DT = #{cmplReqDt}        /* 완료요청일 */
+        WHERE 1=1
+        AND SITE_ID 		= #{siteId}			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        AND WORK_ORD_ID		= #{workOrdId} 	    /* 작업지시ID */
+    </update>
+
+    <select id="reNotiSendSite" resultType="com.rest.api.model.wo.ReNotiSendVO">
+        SELECT 	PSC.SITE_ID AS siteId
+        ,PSU.USER_SEQ AS userSeq
+        , CNT AS cnt
+        ,PSC.ADDR AS addr
+        FROM PRJ_SITE_CNRT PSC
+        JOIN (SELECT SITE_ID, COUNT(SITE_ID) CNT
+        FROM MTN_WKOD_HIST MWH
+        WHERE 1=1
+        AND MWH.DEL_YN = 'N'
+        AND MWH.WORK_ORD_STAT = 'WS0001'
+        <![CDATA[
+        AND MWH.CMPL_REQ_DT <= DATE_FORMAT(NOW(),'%Y%m%d')
+        ]]>
+        GROUP BY MWH.SITE_ID
+        ) MWH2
+        ON(MWH2.SITE_ID = PSC.SITE_ID)
+        JOIN PRJ_SITE_USER PSU
+        ON(PSC.SITE_ID = PSU.SITE_ID
+        AND PSU.SITE_ULVL_CD = 'ACN004')
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+    </select>
+
+    <select id="workOrderprjSiteList" parameterType="com.rest.api.model.wo.WorkOrderPrjSiteVO" resultType="com.rest.api.model.wo.WorkOrderPrjSiteVO">
+        SELECT
+        PSC.SITE_ID             AS siteId       /* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        , PSU.USER_SEQ          AS userSeq      /* 사용자번호 */
+        , CU.USER_NAME          AS userName     /* 사용자명 */
+
+        , PSU2.USER_SEQ         AS instPsnSeq   /* 설치담당자번호 */
+        , CU2.USER_NAME         AS instPsnName  /* 설치담당자명 */
+        , CU2.TEL_NO            AS instPsnTelNo /* 설치담당자전화번호 */
+        , PSC.RESC_GUBN         AS rescGubn     /* 자원구분 */
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        JOIN PRJ_SITE_USER PSU2
+        ON (PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD ='ACN004')
+        JOIN CMN_USER CU
+        ON (PSU.USER_SEQ = CU.USER_SEQ   )
+        JOIN CMN_USER CU2
+        ON (PSU2.USER_SEQ = CU2.USER_SEQ   )
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        AND (PSU.USER_SEQ = #{userSeq} /* 사용자번호 */
+
+        <if test="siteIds != null and  siteIds != ''">
+            OR PSC.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+
+
+    </select>
+    <select id="workOrderprjSiteSeq" parameterType="String" resultType="String">
+        SELECT
+        PSU2.USER_SEQ         AS userSeq   /* 설치담당자번호 */
+
+        FROM PRJ_SITE_CNRT PSC
+        JOIN PRJ_SITE_USER PSU
+        ON (PSC.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN005')
+        JOIN PRJ_SITE_USER PSU2
+        ON (PSC.SITE_ID = PSU2.SITE_ID AND PSU2.SITE_ULVL_CD ='ACN004')
+        JOIN CMN_USER CU
+        ON (PSU.USER_SEQ = CU.USER_SEQ   )
+        JOIN CMN_USER CU2
+        ON (PSU2.USER_SEQ = CU2.USER_SEQ   )
+        WHERE 1=1
+        AND PSC.DEL_YN = 'N'
+        AND PSC.SITE_ID = #{siteId}
+
+
+    </select>
+
+    <select id="workOrderWT0003"  resultType="com.rest.api.model.wo.WT0003VO">
+        SELECT
+         CM.CD AS upprCd
+        ,CM.CD_NAME AS nameKo
+        ,CM.CD_ENG_NAME AS nameEn
+        FROM CMN_CMCD CM
+        WHERE 1=1
+        AND CM.GRP_CD = 'CDK-00025'
+
+
+    </select>
+
+    <select id="workOrderWT0003children"  resultType="com.rest.api.model.wo.children">
+       SELECT
+         CM.FILD_1 AS upprCd
+        ,CM.CD AS jobItem
+        ,CM.CD_NAME AS nameKo
+        ,CM.CD_ENG_NAME AS nameEn
+        ,CM.CD_DESC AS contentKo
+        ,CM.CD_ENG_DESC AS contentEn
+        ,MWH.CHK_SEQ AS chkSeq
+        ,MWH.STAT_GUBN AS statGubn
+        ,MWH.NOTE AS note
+        FROM CMN_CMCD CM
+        LEFT OUTER JOIN MTN_WKOD_HDTL MWH ON CM.CD = MWH.JOB_ITEM
+        WHERE 1=1
+        AND CM.GRP_CD = 'CDK-00026'
+
+
+    </select>
+
+    <select id="unWorkOrderList"  parameterType="com.rest.api.model.wo.MthWkodVO" resultType="com.rest.api.model.wo.MthWkodVO">
+        SELECT
+        DATE_FORMAT( MWH.PUBL_DTTI, '%Y-%m-%d %H:%i')	AS publDtti 		/* 발행일시 */
+        ,MWH.WORK_ORD_ID 			AS workOrdId 		/* 작업지시ID */
+        ,MWH.WORK_ORD_TYP 		    AS workOrdTyp 		/* 작업지시형태 (GRP_CD : CDK-00009 (고장/통신장애/특별점검 등)) */
+        ,MWH.WORK_ORD_STAT 		    AS workOrdStat 	    /* 작업지시상태 (GRP_CD : CDK-00010) */
+        ,MWH.SITE_ID 				AS siteId 			/* 사이트ID (국가코드(2)+City코드(5)+년도(4)+월(2)+일련번호(5)) */
+        ,MWH.USER_SEQ 				AS siteUserSeq
+        ,PSCU.USER_NAME 			AS siteUserName
+        ,MWH.USER_SEQ 				AS workOrdUserSeq   /* 사용자번호 (해당사이트의 OM담당자사용자번호) */
+        ,MWCU.USER_NAME 			AS workOrdUserName
+        ,MWCU.TEL_NO				AS workOrdUserTelNo
+        ,MWH.CMPL_REQ_DT  		    AS cmplReqDt		/* 완료요청일 (발행일 + 3일로 default 설정) */
+        ,MWH.CNFM_DT 				AS cnfmDt 			/* 확인일 */
+        ,MWH.CMPL_PRED_DT 			AS cmplPredDt 		/* 완료예정일 */
+        ,MWH.PRCS_CMPL_DT			AS prcsCmplDt 		/* 처리완료일 */
+        ,CASE WHEN (SELECT COUNT(*) FROM MTN_WKOD_HDTL MWHD WHERE MWHD.SITE_ID = MWH.SITE_ID AND MWHD.WORK_ORD_ID = MWH.WORK_ORD_ID ) > 0 THEN 'Y'
+        ELSE 'N' END AS rsltRegYn /* 결과등록여부 */
+        FROM MTN_WKOD_HIST MWH
+        JOIN PRJ_SITE_CNRT PSC
+        ON MWH.SITE_ID = PSC.SITE_ID AND PSC.DEL_YN = 'N'
+        JOIN PRJ_SITE_USER PSU
+        ON MWH.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD IN('ACN004','ACN005')
+        JOIN CMN_USER MWCU
+        ON MWCU.USER_SEQ = MWH.USER_SEQ
+        JOIN CMN_USER PSCU
+        ON MWH.USER_SEQ = PSCU.USER_SEQ
+        WHERE 1=1
+        AND MWH.DEL_YN = 'N'
+        AND MWH.PRCS_CMPL_DT IS NULL
+        AND PSC.SITE_ID = #{siteId}
+        AND (PSU.USER_SEQ = #{siteUserSeq} /* 사용자번호 */
+        <if test="siteIds != null and  siteIds != ''">
+            OR MWH.SITE_ID IN (
+            <foreach collection="siteIds" item="item" index="index" separator=",">
+                '${item}'
+            </foreach>
+            )
+        </if>
+        )
+    </select>
+
+    <select id="workOrderOverdue"  parameterType="com.rest.api.model.wo.MthWkodVO" resultType="com.rest.api.model.wo.MthWkodOverdueVO">
+        SELECT
+            DATE_FORMAT(MWH.PUBL_DTTI, '%Y-%m') AS 'month',
+            COUNT(*) AS 'totalCnt',
+            SUM(IF(MWH.WORK_ORD_STAT != 'WS0004' AND now() > DATE_FORMAT(MWH.CMPL_REQ_DT, '%Y-%m-%d 23:59:59') , 1 , 0)) AS 'overDueCnt'
+        FROM MTN_WKOD_HIST MWH
+            JOIN PRJ_SITE_CNRT PSC ON (MWH.SITE_ID = PSC.SITE_ID AND PSC.DEL_YN = 'N')
+            JOIN PRJ_SITE_USER PSU ON (MWH.SITE_ID = PSU.SITE_ID AND PSU.SITE_ULVL_CD ='ACN004')
+        WHERE MWH.PUBL_DTTI > DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 5 MONTH), '%Y-%m-01 00:00:00') AND MWH.DEL_YN = 'N'
+            AND (PSU.USER_SEQ = #{siteUserSeq} /* 사용자번호 */
+                OR MWH.USER_SEQ = #{siteUserSeq} /* 사용자번호 */
+            <if test="siteIds != null and  siteIds != ''">
+                OR MWH.SITE_ID IN (
+                <foreach collection="siteIds" item="item" index="index" separator=",">
+                    '${item}'
+                </foreach>
+                )
+            </if>
+            )
+        GROUP BY `month`
+
+    </select>
+
+
+
+
+</mapper>

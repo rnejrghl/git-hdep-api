@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.rest.api.service.mm.CmnMenuMapper">
+
+
+
+    <select id="authMenu" parameterType="String" resultType="com.rest.api.model.mm.CmnMenuVO">
+   SELECT
+        CMR.MENU_ID AS menuId
+        ,CMR.USE_YN AS useYn
+        ,CMR.INQ_YN AS inqYn
+        ,CMR.REG_YN AS regYn
+        ,CMR.MOD_YN AS modYn
+        ,CMR.DEL_YN AS delYn
+        ,CM.URL AS url
+        ,CM.INQ_ORD AS inqOrd
+        ,cmlk.MENU_NAME AS menuKoName
+        ,cmle.MENU_NAME AS menuEnName
+        ,cmlj.MENU_NAME AS menuJpName
+        ,CM.UPER_MENU_ID AS uperMenuId
+        ,(CASE
+        WHEN RIGHT(CM.MENU_ID,1) = '1'
+        THEN '1'
+        ELSE '2'
+        END) AS level
+    FROM CMN_MENU_ROLE CMR
+        LEFT OUTER JOIN CMN_MENU CM ON CMR.MENU_ID = CM.MENU_ID
+        LEFT OUTER JOIN CMN_LANG_MENU cmlk ON CMR.MENU_ID = cmlk.MENU_ID AND cmlk.LANG_CD='KO' and cmlk.MENU_ROLE_ID = #{menuRoleId}
+        LEFT OUTER JOIN CMN_LANG_MENU cmle ON CMR.MENU_ID = cmle.MENU_ID AND cmle.LANG_CD='EN' and cmle.MENU_ROLE_ID = #{menuRoleId}
+        LEFT OUTER JOIN CMN_LANG_MENU cmlj ON CMR.MENU_ID = cmlj.MENU_ID AND cmlj.LANG_CD='JP' and cmlj.MENU_ROLE_ID = #{menuRoleId}
+        INNER JOIN CMN_ROLE CR ON CMR.MENU_ROLE_ID = CR.MENU_ROLE_ID AND CR.DEL_YN = 'N'
+    WHERE 1=1
+    AND CMR.MENU_ROLE_ID = #{menuRoleId}
+    ORDER BY CM.INQ_ORD ASC
+    </select>
+
+    <select id="menuRoleMng" resultType="com.rest.api.model.mm.CmnMenuRoleMngVO">
+   SELECT
+        MENU_ROLE_ID AS menuRoleId          /* 메뉴권한ID */
+        ,MENU_ROLE_NAME AS menuRoleName     /* 메뉴권한명 */
+        ,INQ_ORD AS inqOrd                  /* 조회순서 */
+    FROM CMN_ROLE
+    WHERE 1=1
+    AND DEL_YN = 'N'
+    </select>
+    <update id="menuRoleMngUpdate"  parameterType="com.rest.api.model.mm.CmnMenuRoleMngUpdate">
+     UPDATE CMN_ROLE
+        SET MENU_ROLE_NAME  =  #{menuRoleName}	/* 메뉴권한명 */
+        ,LAST_CHNG_USEQ = #{lastChngUseq}
+      WHERE 1=1
+        AND MENU_ROLE_ID = #{menuRoleId}
+
+    </update>
+
+    <update id="menuRoleMngDelete"  parameterType="com.rest.api.model.mm.CmnMenuRoleMngVO">
+     UPDATE CMN_ROLE
+        SET DEL_YN  =  'Y'	/* 삭제여부 */
+        ,LAST_CHNG_USEQ = #{lastChngUseq}
+      WHERE 1=1
+        AND MENU_ROLE_ID = #{menuRoleId}
+
+    </update>
+    <insert id="menuRoleMngInsert" parameterType="com.rest.api.model.mm.CmnMenuRoleMngInsert">
+        INSERT INTO  CMN_ROLE
+        (
+          MENU_ROLE_ID
+           ,MENU_ROLE_NAME
+          ,INQ_ORD
+          ,LAST_CHNG_USEQ
+        )VALUES(
+          (SELECT CONCAT('ROLE',(SELECT  LPAD(IFNULL(MAX(SUBSTRING(MENU_ROLE_ID,5,6)),0)+1,6,0) FROM CMN_ROLE CR WHERE 1=1)) FROM DUAL)
+          ,#{menuRoleName}
+          ,(SELECT MAX(IFNULL(INQ_ORD,0))+1 FROM CMN_ROLE CR)
+          ,#{lastChngUseq}
+        )
+
+
+    </insert>
+   <select id="authMenuRole" parameterType="String" resultType="com.rest.api.model.mm.CmnMenuRoleTreeVO">
+   SELECT
+        cmr.MENU_ROLE_ID AS menuRoleId
+        ,cm.MENU_ID AS menuId
+        ,cmlk.MENU_NAME AS menuKoName
+        ,cmle.MENU_NAME AS menuEnName
+        ,cmlj.MENU_NAME AS menuJpName
+        ,(CASE
+         WHEN cmr.MENU_ID IS NOT NULL
+         THEN 'Y'
+         ELSE 'N'
+         END) AS menuChk
+         ,(CASE
+            WHEN RIGHT(cm.MENU_ID,1) = '1'
+            THEN '1'
+            ELSE '2'
+            END) AS level
+         ,cmr.USE_YN AS useYn
+         ,cmr.INQ_YN AS inqYn
+         ,cmr.REG_YN AS regYn
+         ,cmr.MOD_YN AS modYn
+         ,cmr.DEL_YN AS delYn
+         ,cm.UPER_MENU_ID AS uperMenuId
+    FROM CMN_MENU cm
+        LEFT OUTER JOIN CMN_MENU_ROLE cmr ON cm.MENU_ID = cmr.MENU_ID AND cmr.MENU_ROLE_ID = #{menuRoleId}
+        LEFT OUTER JOIN CMN_LANG_MENU cmlk ON cm.MENU_ID = cmlk.MENU_ID AND cmlk.LANG_CD='KO' and cmlk.MENU_ROLE_ID = #{menuRoleId}
+        LEFT OUTER JOIN CMN_LANG_MENU cmle ON cm.MENU_ID = cmle.MENU_ID AND cmle.LANG_CD='EN' and cmle.MENU_ROLE_ID = #{menuRoleId}
+        LEFT OUTER JOIN CMN_LANG_MENU cmlj ON cm.MENU_ID = cmlj.MENU_ID AND cmlj.LANG_CD='JP' and cmlj.MENU_ROLE_ID = #{menuRoleId}
+    WHERE 1=1
+    AND RIGHT(cm.MENU_ID,1) IN('1','2')
+    ORDER BY cm.INQ_ORD ASC
+    </select>
+
+    <update id="authMenuRoleDelete" parameterType="String">
+        DELETE FROM CMN_MENU_ROLE WHERE MENU_ROLE_ID = #{menuRoleId}
+    </update>
+
+    <update id="menuLangUpdate" parameterType="com.rest.api.model.mm.CmnMenuLangInsert">
+        UPDATE CMN_LANG_MENU SET
+            MENU_NAME =  #{menuName}
+          ,LAST_CHNG_USEQ = #{lastChngUseq}
+        WHERE
+              MENU_ID = #{menuId} AND
+              MENU_ROLE_ID = #{menuRoleId} AND
+              LANG_CD = #{langCd}
+    </update>
+
+    <insert id="cmnMenuRoleInsert" parameterType="com.rest.api.model.mm.CmnMenuRoleInsert">
+     INSERT INTO
+          CMN_MENU_ROLE (
+             MENU_ROLE_ID
+             ,MENU_ID
+             ,USE_YN
+             ,INQ_YN
+             ,REG_YN
+             ,MOD_YN
+             ,DEL_YN
+             ,LAST_CHNG_USEQ
+          )
+       VALUES (
+          #{menuRoleId}
+          ,#{menuId}
+          ,IFNULL(#{useYn},'N')
+          ,IFNULL(#{inqYn},'N')
+          ,IFNULL(#{regYn},'N')
+          ,IFNULL(#{modYn},'N')
+          ,IFNULL(#{delYn},'N')
+          ,#{lastChngUseq}
+       )
+        ON
+           DUPLICATE KEY
+        UPDATE
+           LAST_CHNG_USEQ = #{lastChngUseq}
+
+
+
+    </insert>
+
+</mapper>

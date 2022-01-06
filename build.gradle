@@ -1,0 +1,71 @@
+plugins {
+    id 'org.springframework.boot' version '2.1.7.RELEASE'
+    id 'java'
+}
+
+
+apply plugin: 'io.spring.dependency-management'
+
+group 'com.rest'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+    all {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    }
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.rest.api.ApiApplication.Class'
+    }
+}
+
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    compile('org.springframework.boot:spring-boot-starter-thymeleaf')
+    compile group: 'org.springframework.security', name: 'spring-security-crypto', version: '3.1.0.RELEASE'
+    compileOnly("org.projectlombok:lombok:1.18.2")
+    testCompileOnly("org.projectlombok:lombok:1.18.2")
+    annotationProcessor("org.projectlombok:lombok:1.18.2")
+    testAnnotationProcessor("org.projectlombok:lombok:1.18.2")
+    compile("org.springframework.boot:spring-boot-starter-jdbc:2.0.1.RELEASE")
+    compile("mysql:mysql-connector-java:5.1.46")
+    compile("org.mybatis.spring.boot:mybatis-spring-boot-starter:1.3.1")
+    compile("org.mybatis:mybatis-spring:1.3.1")
+    compile("org.mybatis:mybatis:3.4.5")
+    implementation 'io.springfox:springfox-swagger2:2.6.1'
+    implementation 'io.springfox:springfox-swagger-ui:2.6.1'
+    implementation 'commons-io:commons-io:2.6'
+    runtimeOnly 'org.springframework.boot:spring-boot-devtools'
+    implementation 'net.rakugakibox.util:yaml-resource-bundle:1.1'
+    implementation 'io.jsonwebtoken:jjwt:0.9.1'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.apache.httpcomponents:httpclient'
+    compile('org.apache.poi:poi-ooxml:4.1.2') 
+    compile('org.apache.poi:poi:4.1.2')
+    compile group: 'eu.bitwalker', name: 'UserAgentUtils', version: '1.21'
+    compile group: 'com.amazonaws', name: 'aws-java-sdk', version:'1.11.734'
+    compile('org.springframework.boot:spring-boot-starter-tomcat')
+    compile group: 'org.springframework.cloud', name: 'spring-cloud-aws', version: '2.2.1.RELEASE', ext: 'pom'    
+    compile('com.amazonaws:aws-java-sdk-ses:1.11.227')
+    compile ('javax.xml.bind:jaxb-api')    
+    implementation 'org.jsoup:jsoup:1.14.3'
+    implementation 'org.json:json:20190722'
+    implementation 'org.springframework.boot:spring-boot-starter-log4j2'
+    compile('commons-lang:commons-lang:2.6')
+    compile group: 'org.bgee.log4jdbc-log4j2', name: 'log4jdbc-log4j2-jdbc4.1', version: '1.16'
+}

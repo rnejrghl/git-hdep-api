@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.rest.api.service.mm.CmnDvceMapper">
+
+    <select id="dvceList" parameterType="com.rest.api.model.mm.CmnDvceVO" resultType="com.rest.api.model.mm.CmnDvceVO">
+        SELECT CD.DVCE_ID 	AS dvceId		/* 디바이스ID */
+        , CD.EQMT_GUBN_CD 	AS eqmtGubnCd	/* 설비구분코드 (인버터/PCS/배터리) */
+        , CD.EQMT_PRDT_CD 	AS eqmtPrdtCd	/* 설비상품코드 */
+        , CD.PNT_ADDR 		AS pntAddr		/* 포인트주소 */
+        , CD.PNT_ADDR_NAME 	AS pntAddrName	/* 포인트주소명 */
+        , CD.PNT_ADDR_DESC 	AS pntAddrDesc /* 포인트주소설명 */
+        , CD.DATA_TYP 		AS dataTyp		/* 데이터형식 */
+        , CD.ITEM_GUBN 		AS itemGubn		/* 아이템구분 */
+        , CD.SCLE_FCTR 		AS scleFctr		/* 스케일팩터 (NUMBER만 넣나?) */
+        , CD.UNIT_CD 		AS unitCd		/* 단위코드 (GRP_CD : CDK-00018) */
+        , CD.SYS_TAG 		AS sysTag		/* 시스템태그 */
+        , CD.ORG_DVCE_ID 	AS orgDvceId	/* 원본디바이스ID */
+        , (SELECT COUNT(CDC.DVCE_ID) CNT FROM CMN_DVCE_CALC CDC WHERE 1=1 AND CDC.DVCE_ID = CD.DVCE_ID ) AS cnt
+        FROM CMN_DVCE CD
+        WHERE 1=1
+        AND CD.EQMT_GUBN_CD 		= #{eqmtGubnCd}			/* 설비구분코드 (인버터/PCS/배터리) */
+        <if test="pntAddr != null and  pntAddr != ''">
+        AND CD.PNT_ADDR 		= #{pntAddr}			/* 포인트주소 */
+        </if>
+
+        <if test="pntAddrName != null and  pntAddrName != ''">
+            AND CD.PNT_ADDR_NAME = #{pntAddrName}		/* 포인트주소명 */
+        </if>
+
+        <if test="sysTag != null and  sysTag != ''">
+        AND CD.SYS_TAG 		= #{sysTag}				/* 시스템태그 */
+        </if>
+
+        <if test="rescGubn != null and  rescGubn != ''">
+        AND CD.RESC_GUBN 		= #{rescGubn}				/* 구분 */
+        </if>
+
+    </select>
+
+    <select id="dvceCalcList" parameterType="com.rest.api.model.mm.CmnDvceCalcVO" resultType="com.rest.api.model.mm.CmnDvceCalcVO">
+        SELECT DVCE_ID AS dvceId 		/*디바이스ID*/
+            , CALC_SEQ 	AS calcSeq		/*계산식순서*/
+            , BLOW_CALC AS blowCalc		/*이하식*/
+            , EXCS_CALC AS excsCalc		/*초과식*/
+            , CALC_RSLT	AS calcRslt		/*수식결과*/
+        FROM CMN_DVCE_CALC
+        WHERE 1=1
+        AND DVCE_ID	= #{dvceId}
+        AND DEL_YN 	= 'N'		/*삭제여부*/
+        ORDER BY CALC_SEQ ASC
+    </select>
+
+    <insert id="dvceCalcInsert" parameterType="com.rest.api.model.mm.CmnDvceCalcInsert" >
+        INSERT INTO CMN_DVCE_CALC
+        (
+            DVCE_ID 			/*디바이스ID*/
+            , CALC_SEQ 		/*계산식순서*/
+            , LAST_CHNG_USEQ /*최종작업자번호*/
+            , BLOW_CALC 	/*이하식*/
+            , EXCS_CALC 	/*초과식*/
+            , CALC_RSLT 	/*수식결과*/
+            , DEL_YN 		/*삭제여부*/
+        )
+        VALUES
+        (
+            #{dvceId} 		/*디바이스ID*/
+            , (SELECT IFNULL(MAX(cdc.CALC_SEQ),0)+1 FROM CMN_DVCE_CALC cdc WHERE cdc.DVCE_ID =  #{dvceId})		/*계산식순서*/
+            , #{userSeq} 	/*최종작업자번호*/
+            , #{blowCalc} 	/*이하식*/
+            , #{excsCalc} 	/*초과식*/
+            , #{calcRslt} 	/*수식결과*/
+            , 'N' 			/*삭제여부*/
+        )
+    </insert>
+
+    <insert id="dvceInsert" parameterType="com.rest.api.model.mm.CmnDvceInsert" >
+        INSERT INTO CMN_DVCE
+        (
+            DVCE_ID 			/* 디바이스ID */
+            , LAST_CHNG_USEQ 	    /* 최종작업자번호 */
+            , EQMT_GUBN_CD 	    /* 설비구분코드 (인버터/PCS/배터리) */
+            , EQMT_PRDT_CD 	    /* 설비상품코드 */
+            , PNT_ADDR 			/* 포인트주소 */
+            , PNT_ADDR_NAME 	/* 포인트주소명 */
+            , PNT_ADDR_DESC 	/* 포인트주소설명 */
+            , DATA_TYP 			/* 데이터형식 */
+            , ITEM_GUBN 		/* 아이템구분 */
+            , SCLE_FCTR 		/* 스케일팩터 (NUMBER만 넣나?) */
+            , UNIT_CD 			/* 단위코드 (GRP_CD : CDK-00018) */
+            , SYS_TAG 			/* 시스템태그 */
+            , ORG_DVCE_ID 		/* 원본디바이스ID */
+        )
+        VALUES
+        (
+            #{dvceId} 			/*디바이스ID*/
+            , #{userSeq} 		/*최종작업자번호*/
+            , #{eqmtGubnCd} 	/*설비구분코드 (인버터/PCS/배터리)*/
+            , #{eqmtPrdtCd} 	/*설비상품코드*/
+            , #{pntAddr} 		/*포인트주소*/
+            , #{pntAddrName} 	/*포인트주소명*/
+            , #{pntAddrDesc} 	/*포인트주소설명*/
+            , #{dataTyp} 		/*데이터형식*/
+            , #{itemGubn} 		/*아이템구분*/
+            , #{scleFctr} 		/*스케일팩터 (NUMBER만 넣나?)*/
+            , #{unitCd} 		/*단위코드 (GRP_CD : CDK-00018)*/
+            , #{sysTag} 		/*시스템태그*/
+            , #{orgDvceId}  	/*원본디바이스ID*/
+
+        )
+
+    </insert>
+    <update id="dvceCalcUpdate" parameterType="com.rest.api.model.mm.CmnDvceUpdate">
+        UPDATE CMN_DVCE_CALC
+        SET LAST_CHNG_USEQ 		= #{userSeq}		/* 최종작업자번호 */
+            , BLOW_CALC 	 	= #{blowCalc}		/* 이하식 */
+            , EXCS_CALC 	 	= #{excsCalc}		/* 초과식 */
+            , CALC_RSLT 	 	= #{calcRslt}		/* 수식결과 */
+        WHERE 1=1
+        AND DVCE_ID = #{dvceId}
+        AND CALC_SEQ = #{calcSeq}
+    </update>
+
+    <update id="dvceCalcDelete" parameterType="com.rest.api.model.mm.CmnDvceCalcVO">
+        UPDATE CMN_DVCE_CALC
+        SET DEL_YN = 'Y'
+        	,LAST_CHNG_USEQ= #{userSeq} 	/*최종작업자번호*/
+        WHERE 1=1
+        AND DVCE_ID  =	#{dvceId} 		/*디바이스ID*/
+        AND CALC_SEQ = #{calcSeq} 		/*계산식순서*/
+    </update>
+
+    <update id="dvceUpdate" parameterType="com.rest.api.model.mm.CmnDvceUpdate">
+        UPDATE CMN_DVCE
+        SET LAST_CHNG_USEQ 		= #{userSeq}		/* 최종작업번호 */
+            , DATA_TYP 	 		= #{dataTyp}		/* 데이터형식 */
+            , ITEM_GUBN 	 	= #{itemGubn}		/* 아이템구분 */
+            , SCLE_FCTR 	 	= #{scleFctr}		/* 스케일팩터 (NUMBER만 넣나?) */
+            , UNIT_CD 	 		= #{unitCd}			/* 단위코드 (GRP_CD : CDK-00018) */
+            , SYS_TAG 	 		= #{sysTag} 	 	/* 시스템태그 */
+        WHERE 1=1
+        AND DVCE_ID = #{dvceId}
+    </update>
+
+    <select id="dvceAlrmsList" parameterType="com.rest.api.model.mm.CmnDvceAlrmVO" resultType="com.rest.api.model.mm.CmnDvceAlrmVO">
+        SELECT CDA.ALRT_CD 		    AS alrtCd		/* 알람코드 */
+            , CDA.ALRT_NAME 		AS alrtName		/* 알람명 */
+            , CDA.ALRT_TYP_CD 	    AS alrtTypCd	/* 알람유형코드 (통신장애/고장...등) */
+            , CDA.ALRT_GRD_CD 	    AS alrtGrdCd	/* 알람등급코드 (상/중/하) */
+            , CDA.ALRT_CNTN 		AS alrtCntn		/* 알람내용식 */
+            , CDA.SYS_ALRT_YN 	    AS sysAlrtYn 	/* 시스템알림여부 (Y/N) */
+            , CDA.SMS_YN 			AS smsYn			/* SMS여부 (Y/N) */
+            , CDA.EMAIL_YN 		    AS emailYn		/* 이메일여부 (Y/N) */
+            , CDA.CONT_TIME 		AS contTime		/* 지속시간 (초단위로 저장(10초간 지속)) */
+            , CDA.SEND_CYCL 		AS sendCycl		/* 발송주기 (분단위로 저장(5분간격)) */
+            , CDA.NOTE 				AS note			/* 비고 */
+            , (SELECT COUNT(CDC.ALRT_CD) CNT FROM CMN_DVAL_CALC CDC WHERE 1=1 AND CDC.ALRT_CD = CDA.ALRT_CD ) AS cnt
+        FROM CMN_DVCE_ALRM CDA
+        WHERE 1=1
+        <if test="alrtTypCd != null and  alrtTypCd != ''">
+            AND CDA.ALRT_TYP_CD 		= #{alrtTypCd}			/* 알람유형코드 (통신장애/고장...등) */
+        </if>
+
+        <if test="dvceId != null and  dvceId != ''">
+            AND CDA.DVCE_ID 		= #{dvceId}
+        </if>
+
+    </select>
+
+
+    <select id="dvalCalcList" parameterType="com.rest.api.model.mm.CmnDvalCalcVO" resultType="com.rest.api.model.mm.CmnDvalCalcVO">
+        SELECT ALRT_CD 	    AS alrtCd 		/* 알람코드 */
+            , CALC_SEQ 		AS calcSeq		/* 계산식순서 */
+            , CNDT_GUBN_CD  AS cndtGubnCd	/* 조건구분코드 (and/or) */
+            , SYS_TAG  		AS sysTag		/* 시스템태그 */
+            , CALC_GUBN_CD  AS calcGubnCd	/* 연산자구분코드  */
+            , CMPR_VAL 		AS cmprVal		/* 비교값 */
+            FROM CMN_DVAL_CALC
+            WHERE 1=1
+            <if test="alrtCd != null and  alrtCd != ''">
+            AND ALRT_CD	= #{alrtCd}
+            </if>
+            AND DEL_YN 	= 'N'		/*삭제여부*/
+            ORDER BY CALC_SEQ ASC
+    </select>
+
+    <insert id="dvalCalcInsert" parameterType="com.rest.api.model.mm.CmnDvalCalcInsert" >
+        INSERT INTO CMN_DVAL_CALC
+        (
+            ALRT_CD 			/* 알람코드 */
+            , CALC_SEQ 		    /* 계산식순서 */
+            , LAST_CHNG_USEQ    /* 최종작업자번호 */
+            , CNDT_GUBN_CD      /* 조건구분코드 (and/or) */
+            , SYS_TAG 		    /* 시스템태그 */
+            , CALC_GUBN_CD      /* 연산자구분코드 */
+            , CMPR_VAL 		    /* 비교값 */
+            , DEL_YN 		    /* 삭제여부 (Y/N) */
+            )
+            VALUES
+            (
+            #{alrtCd} 			/* 알람코드 */
+            , (SELECT IFNULL(MAX(cdc.CALC_SEQ),0)+1 FROM CMN_DVAL_CALC cdc WHERE cdc.ALRT_CD =  #{alrtCd})		/*계산식순서*/
+            , #{userSeq} 		/* 최종작업자번호 */
+            , #{cndtGubnCd} 	/* 조건구분코드 (and/or) */
+            , #{sysTag} 		/* 시스템태그 */
+            , #{calcGubnCd} 	/* 연산자구분코드 */
+            , #{cmprVal} 		/* 비교값 */
+            , 'N' 				/* 삭제여부 (Y/N) */
+        )
+    </insert>
+
+    <update id="dvalCalcDelete" parameterType="com.rest.api.model.mm.CmnDvalCalcVO">
+        UPDATE CMN_DVAL_CALC
+        SET DEL_YN = 'Y'
+            ,LAST_CHNG_USEQ  	= #{userSeq} 		/* 최종작업자번호 */
+        WHERE 1=1
+        AND ALRT_CD =	#{alrtCd} 		/* 알람코드 */
+        AND CALC_SEQ = #{calcSeq} 		/* 계산식순서 */
+    </update>
+
+    <update id="dvalCalcUpdate" parameterType="com.rest.api.model.mm.CmnDvalCalcVO">
+        UPDATE CMN_DVAL_CALC
+        SET LAST_CHNG_USEQ  	= #{userSeq} 	/* 최종작업자번호 */
+            , CNDT_GUBN_CD 	= #{cndtGubnCd} 	/* 조건구분코드 (and/or) */
+            , SYS_TAG 		= #{sysTag} 		/* 시스템태그 */
+            , CALC_GUBN_CD 	= #{calcGubnCd} 	/* 연산자구분코드 */
+            , CMPR_VAL 		= #{cmprVal} 		/* 비교값 */
+        WHERE 1=1
+        AND ALRT_CD 	= #{alrtCd} 		/* 알람코드 */
+        AND CALC_SEQ 	= #{calcSeq} 		/* 계산식순서 */
+        AND DEL_YN 		= 'N' 				/* 삭제여부 (Y/N) */
+
+    </update>
+
+    <update id="dvceAlrmUpdate" parameterType="com.rest.api.model.mm.CmnDvceAlrmVO">
+        UPDATE CMN_DVCE_ALRM
+        SET LAST_CHNG_USEQ 		= #{userSeq}		/* 최종작업자번호 */
+            , ALRT_NAME 		= #{alrtName} 		/* 알람명 */
+            , ALRT_TYP_CD 		= #{alrtTypCd} 	    /* 알람유형코드 (통신장애/고장...등) */
+            , ALRT_GRD_CD 		= #{alrtGrdCd}  	/* 알람등급코드 (상/중/하) */
+            , ALRT_CNTN 		= #{alrtCntn} 		/* 알람내용식 */
+            , SYS_ALRT_YN 		= #{sysAlrtYn} 	    /* 시스템알림여부 (Y/N) */
+            , SMS_YN 			= #{smsYn} 			/* SMS여부 (Y/N) */
+            , EMAIL_YN 			= #{emailYn} 		/* 이메일여부 (Y/N) */
+            , CONT_TIME 		= #{contTime} 		/* 지속시간 (초단위로 저장(10초간 지속)) */
+            , SEND_CYCL 		= #{sendCycl} 		/* 발송주기 (분단위로 저장(5분간격)) */
+            , NOTE 				= #{note} 			/* 비고 */
+        WHERE 1=1
+        AND ALRT_CD = #{alrtCd}
+    </update>
+
+
+</mapper>

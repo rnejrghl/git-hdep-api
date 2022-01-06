@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.jdbc.Driver
+    url: jdbc:mysql://db-hanwha.cgbtb4p2fnml.ap-northeast-2.rds.amazonaws.com:3306/AUVPP?useSSL=false
+    username: root
+    password: giJsK73qmD5Pogau
+
+cloud:
+  aws:
+    credentials:
+      accessKey: AKIA27BKCBYC7KPLOWUP
+      secretKey: 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
+    s3:
+      bucket: auvppdev-ap-northeast-2
+    region:
+      static: ap-northeast-2
+    stack:
+      auto: false
+
